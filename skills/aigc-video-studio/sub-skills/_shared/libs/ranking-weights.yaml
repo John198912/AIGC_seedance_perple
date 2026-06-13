@@ -1,0 +1,39 @@
+# 算法信号权重档（设计稿 v5.0 第三部分 / 第四部分）
+# 完播/互动/搜索/画像/新鲜度等的定性档（primary/strong/...）+ verified_at + source
+# + confidence(定性，禁小数)。镜像 capabilities.yaml 治理；契约只引用不写值。
+# 第四部分：tier 是独立「算法信号权重档」，不与 observed/sourced 两轴混用。
+
+version: 0.1.0-seed
+verified_at: 2026-06-13
+source: "recsys 公开文献综述（Covington 2016 候选+排序两阶段 / Yi 2019 双塔 / 字节 Monolith）；档位为定性推断"
+note: "幸存者偏差校正：只做集合内相对比较，禁用绝对完播阈值。"
+
+tiers: [primary, strong, moderate, weak]
+
+signals:
+  completion_rate:
+    label_zh: 完播率
+    tier: primary
+    signal_kind: lagging
+    confidence: med
+    note: "排序核心；但被幸存者偏差截断，仅桶内相对比较。"
+  interaction_rate:
+    label_zh: 互动率
+    tier: strong
+    signal_kind: lagging
+    confidence: med
+  search_relevance:
+    label_zh: 搜索相关性
+    tier: moderate
+    signal_kind: lagging
+    confidence: low
+  audience_profile:
+    label_zh: 画像匹配
+    tier: moderate
+    signal_kind: lagging
+    confidence: low
+  freshness:
+    label_zh: 新鲜度
+    tier: weak
+    signal_kind: leading
+    confidence: low

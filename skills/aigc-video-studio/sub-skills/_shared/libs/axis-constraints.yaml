@@ -1,0 +1,28 @@
+# 稀疏轴冲突规则（设计稿 v5.0 第三部分 / 第五部分 coherence 校验）
+# 仅列真正相关的轴对，不维护稠密矩阵（决策点 3：稀疏冲突规则增量）。
+# relation: conflict（硬冲突）| weak_conflict（弱冲突·提醒）| requires（依赖）
+# 每条以「轴.取值」粒度命中；axes 写 [a.value, b.value]，按字典轴名引用。
+
+version: 0.1.0-seed
+verified_at: 2026-06-13
+
+constraints:
+  - axes: ["shot_grammar.fast_cut_handheld", "emotion_curve_shape.flat_low"]
+    relation: conflict
+    note: "快切+手持微晃 与 低起压抑慢节奏 形态相悖：高频运镜破坏压抑长镜情绪。命中需取舍。"
+
+  - axes: ["pacing.fast_cut", "emotion_curve_shape.flat_low"]
+    relation: conflict
+    note: "快切节奏 与 低起压抑慢节奏 直接冲突。"
+
+  - axes: ["hook_type.suspense_question", "view_scene.bedtime_fragment"]
+    relation: weak_conflict
+    note: "悬念提问钩子 与 睡前碎片场景 弱冲突：悬念拉升唤醒度，与睡前放松场景张力不一致，仅提醒。"
+
+  - axes: ["narrative_structure.twist_ending", "hook_type.direct_promise"]
+    relation: weak_conflict
+    note: "结尾反转 与 开场直给承诺 弱冲突：直给削弱反转意外性，提醒取舍。"
+
+  - axes: ["emotion_curve_shape.low_start_midrise", "narrative_structure.in_medias_res"]
+    relation: requires
+    note: "低起中段上扬 通常依赖中段切入/铺垫结构以承载反转点。"

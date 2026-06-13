@@ -36,6 +36,9 @@ CONTRACT_ALIASES = {
     "C9": "takelog",
     "C10": "qcreport",
     "C11": "feedback",
+    "C12": "reference_work",
+    "C13": "featuretagset",
+    "C14": "creativedna",
 }
 ALIAS_TO_CONTRACT = {v: k for k, v in CONTRACT_ALIASES.items()}
 

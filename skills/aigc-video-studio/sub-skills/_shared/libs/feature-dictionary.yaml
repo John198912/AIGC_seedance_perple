@@ -1,0 +1,130 @@
+# 受控特征字典（逆向特征工程模块 · 设计稿 v5.0 第三部分）
+# 定义「内容沿哪些轴变化 + 每轴如何落到 SK1–SK4」。存「轴 + 取值范围」而非
+# 预设套餐（防模板化）。每轴标 domain/gating/signal_kind/information/maps_to/values。
+# 版本化（semver）：轴集合变 = major、权重调 = minor；v0 标 seed/假设，聚焦结构层轴。
+#
+# 设计纪律：
+#   - 结构层（content）轴为承重墙，gating: true，可门控；
+#   - audience/scene/behavior 轴为顾问增强，gating: false，永不门控（①②④）；
+#   - 能力/治理数字均挂 verified_at；本表 v0 全部为 seed 假设、未经标定。
+
+version: 0.1.0-seed
+verified_at: 2026-06-13
+note: "v0 seed 假设，仅结构层轴可门控；①②④ 域永不门控（gating:false）。轴集合在一个 major 内冻结。"
+
+axes:
+  # ============== 结构层（content）· 承重墙 · 可门控 ==============
+  hook_type:
+    label_zh: 钩子型
+    domain: content
+    gating: true
+    signal_kind: leading
+    information: high
+    maps_to: [screenplay-writer]
+    values:
+      - suspense_question   # 悬念提问开场
+      - shock_open          # 震撼/冲突开场
+      - relatable_scene     # 共鸣代入场景
+      - reversal_tease      # 反转预告
+      - direct_promise      # 直给价值承诺
+    note: "首镜钩子结构，落 screenplay scenes[0].dialogue。reference_analyzer 不覆盖。"
+
+  emotion_curve_shape:
+    label_zh: 情绪曲线形态
+    domain: content
+    gating: true
+    signal_kind: leading
+    information: high
+    maps_to: [screenplay-writer]
+    values:
+      - low_start_midrise   # 低起·中段反转上扬
+      - steady_build        # 平稳渐强
+      - rollercoaster       # 多峰起伏
+      - calm_release        # 压抑后释放
+      - flat_low            # 低起压抑慢节奏（与快切手持冲突）
+    note: "目标曲线形态注入编剧提示，产出后由 emotion_curve.py 事后校验（不接受目标曲线输入）。"
+
+  pacing:
+    label_zh: 节奏型
+    domain: content
+    gating: true
+    signal_kind: leading
+    information: high
+    maps_to: [storyboard-director, edit-finish]
+    values:
+      - fast_cut            # 快切高频
+      - medium_steady       # 中速平稳
+      - slow_long_take      # 慢节奏长镜
+      - accelerating        # 渐快
+    note: "镜头时长/剪辑频率节拍。落 shots[].duration_s 与剪辑节拍。"
+
+  narrative_structure:
+    label_zh: 叙事结构
+    domain: content
+    gating: true
+    signal_kind: leading
+    information: high
+    maps_to: [screenplay-writer]
+    values:
+      - three_act           # 三幕
+      - in_medias_res       # 中段切入
+      - loop_callback       # 首尾呼应环形
+      - listicle            # 清单/分点
+      - twist_ending        # 结尾反转
+    note: "整体叙事骨架，落 screenplay 场次结构。"
+
+  shot_grammar:
+    label_zh: 镜头语法
+    domain: content
+    gating: true
+    signal_kind: leading
+    information: high
+    maps_to: [storyboard-director]
+    values:
+      - fast_cut_handheld   # 快切 + 手持微晃（与 flat_low 冲突）
+      - locked_static       # 固定机位
+      - slow_dolly          # 缓慢推轨
+      - whip_pan            # 甩镜转场
+      - match_cut           # 匹配剪辑
+    note: "运镜语法层（非具体构图），落 shots[].camera_move。"
+
+  # ============== 顾问增强 · ①②④ 域 · 永不门控（gating:false） ==============
+  target_audience:
+    label_zh: 目标受众
+    domain: audience           # ① 受众
+    gating: false
+    signal_kind: lagging
+    information: low
+    maps_to: [concept-brief]
+    values:
+      - young_male_18_24
+      - young_female_18_24
+      - general_25_34
+      - parents
+    note: "顾问增强，标 advisory，可被创作者覆盖。落 concept-brief target_audience。"
+
+  view_scene:
+    label_zh: 观看场景
+    domain: scene              # ② 场景
+    gating: false
+    signal_kind: lagging
+    information: low
+    maps_to: [concept-brief]
+    values:
+      - bedtime_fragment       # 睡前碎片（与悬念钩子 weak_conflict）
+      - commute
+      - lean_back_long
+    note: "仅顾问提示，不进硬约束。"
+
+  engagement_behavior:
+    label_zh: 互动行为
+    domain: behavior           # ④ 行为
+    gating: false
+    signal_kind: lagging
+    information: low
+    maps_to: [concept-brief]
+    values:
+      - rewatch_loop
+      - comment_bait
+      - share_trigger
+    note: "顾问增强，永不门控。"

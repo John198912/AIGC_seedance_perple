@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "C13.schema.json",
+  "title": "C13 · FeatureTagSet（特征标签集，中间件）",
+  "description": "deconstruct 产物：一部参考作品提取的特征标签集。结构层（content）为承重墙；①②④（audience/scene/behavior）打 advisory 标记。每条特征含可观测性 × 来源可信度两轴。设计稿 v5.0 第二/四部分 C13。",
+  "type": "object",
+  "required": ["ref_id", "features"],
+  "additionalProperties": true,
+  "properties": {
+    "ref_id": { "type": "string", "description": "对应 C12 ref_id" },
+    "title": { "type": "string" },
+    "features": {
+      "type": "array",
+      "description": "逐条特征标签",
+      "items": {
+        "type": "object",
+        "required": ["feature_axis", "value", "domain", "provenance", "confidence_tier"],
+        "additionalProperties": true,
+        "properties": {
+          "feature_axis": {
+            "type": "string",
+            "description": "取自 feature-dictionary 的轴名"
+          },
+          "value": {
+            "type": "string",
+            "description": "该轴取值（应在字典 values 范围内）"
+          },
+          "domain": {
+            "type": "string",
+            "enum": ["content", "audience", "scene", "behavior"],
+            "description": "content 为承重；audience/scene/behavior 为 ①②④ 顾问"
+          },
+          "provenance": {
+            "type": "string",
+            "enum": ["observed", "sourced", "inferred"],
+            "description": "可观测性：observed > sourced > inferred"
+          },
+          "confidence_tier": {
+            "type": "string",
+            "enum": ["high", "med", "low"],
+            "description": "来源可信度档（由 source-credibility-rubric 派生）"
+          },
+          "advisory": {
+            "type": "boolean",
+            "description": "true = 顾问增强、永不门控（①②④ 与 inferred 项）"
+          },
+          "source_refs": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "来源引用（ref_id/链接/来源类型）"
+          },
+          "rationale": {
+            "type": "string",
+            "description": "可选：推断理由"
+          }
+        }
+      }
+    }
+  }
+}

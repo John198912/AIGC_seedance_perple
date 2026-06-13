@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "C14.schema.json",
+  "title": "C14 · CreativeDNA（可迁移结构模式 + 反向映射产物）",
+  "description": "reverse_map 产物，SK1–SK4 真正消费的契约（消费侧形状最先冻结）。N≥3 作品结构层共性交集 → 跨阶段指令组；coherence 校验；forbidden 禁迁具体角色/台词/分镜构图/BGM 旋律。设计稿 v5.0 第二/五部分 C14。",
+  "type": "object",
+  "required": ["transferable_patterns", "coherence", "forbidden"],
+  "additionalProperties": true,
+  "properties": {
+    "source_ref_ids": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "参与共性交集的 C13 ref_id 列表（N≥3）"
+    },
+    "transferable_patterns": {
+      "type": "array",
+      "description": "可迁移结构模式 + 反向映射指令",
+      "items": {
+        "type": "object",
+        "required": ["feature_axis", "value", "provenance", "confidence_tier", "maps_to", "directive", "ip_layer", "specificity_ok"],
+        "additionalProperties": true,
+        "properties": {
+          "feature_axis": { "type": "string", "description": "取自 feature-dictionary 的轴名" },
+          "value": { "type": "string", "description": "该轴取值" },
+          "provenance": {
+            "type": "string",
+            "enum": ["observed", "sourced", "inferred"]
+          },
+          "confidence_tier": {
+            "type": "string",
+            "enum": ["high", "med", "low"]
+          },
+          "maps_to": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "目标阶段（screenplay-writer/storyboard-director/concept-brief/edit-finish）"
+          },
+          "directive": {
+            "type": "string",
+            "description": "跨阶段可执行指令；机械具体性地板要求含阶段+具体字段/槽位/数值 token"
+          },
+          "ip_layer": {
+            "type": "string",
+            "const": "structural",
+            "description": "只迁结构层，禁具体表达层"
+          },
+          "specificity_ok": {
+            "type": "boolean",
+            "description": "false = 只含形容词/通用套话，机械具体性地板判废"
+          },
+          "advisory": {
+            "type": "boolean",
+            "description": "true = inferred 或 ①②④ 项，永不门控"
+          }
+        }
+      }
+    },
+    "coherence": {
+      "type": "object",
+      "required": ["conflicts", "resolved"],
+      "additionalProperties": true,
+      "properties": {
+        "conflicts": {
+          "type": "array",
+          "description": "命中的轴冲突（查 axis-constraints）",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "axes": { "type": "array", "items": { "type": "string" } },
+              "relation": { "type": "string", "enum": ["conflict", "weak_conflict", "requires"] },
+              "note": { "type": "string" }
+            }
+          }
+        },
+        "resolved": {
+          "type": "boolean",
+          "description": "硬 conflict 是否已取舍解决（未解决不应产自相矛盾指令组）"
+        }
+      }
+    },
+    "forbidden": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "禁迁项：具体角色/台词/分镜构图/BGM 旋律等表达层"
+    }
+  }
+}

@@ -1,0 +1,28 @@
+# 来源强度评分表（设计稿 v5.0 第三部分 / 第四部分两轴模型）
+# 来源类型 → 定性档（high/med/low），杜绝凭空小数。
+# 第四部分：不确定性 = 可观测性(observed>sourced>inferred) × 来源可信度(本表派生)。
+
+version: 0.1.0-seed
+verified_at: 2026-06-13
+note: "定性档，无伪精度浮点。inferred 项最终置信由外部锚点决定（决策点4，M2 落地）。"
+
+tiers: [high, med, low]
+
+source_types:
+  first_party_channel:        # C15 第一方实绩（自有已发布作品）
+    tier: high
+    note: "自有发布作品实测，最高可信；M4 落地。"
+  official_doc:               # 平台/官方文档
+    tier: high
+  multi_independent_sourced:  # ≥2 独立来源印证
+    tier: high
+    note: "决策点4 锚点：sourced≥2 独立来源可升档。"
+  single_sourced:             # 单一外部来源
+    tier: med
+  reputable_analysis:         # 可信第三方分析/解读
+    tier: med
+  community_heuristic:        # 社区经验/启发
+    tier: low
+  self_inferred:              # 自产推断（无锚点）
+    tier: low
+    note: "自产基率/另一 LLM 不算锚点；无锚点封顶 inferred 地板、不升档。"

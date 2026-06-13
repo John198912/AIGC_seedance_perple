@@ -20,10 +20,12 @@ QC_SCRIPTS = SKILL_BASE / "sub-skills" / "qc-review" / "scripts"
 AP_SCRIPTS = SKILL_BASE / "sub-skills" / "audio-post" / "scripts"
 EF_SCRIPTS = SKILL_BASE / "sub-skills" / "edit-finish" / "scripts"
 PK_SCRIPTS = SKILL_BASE / "sub-skills" / "publish-kit" / "scripts"
+# Phase 7 逆向特征工程模块
+FDC_SCRIPTS = SKILL_BASE / "sub-skills" / "feature-deconstruct" / "scripts"
 
 for p in (SHARED_SCRIPTS, PC_SCRIPTS, GR_SCRIPTS, SK0_SCRIPTS,
           SB_SCRIPTS, SW_SCRIPTS, CF_SCRIPTS, QC_SCRIPTS,
-          AP_SCRIPTS, EF_SCRIPTS, PK_SCRIPTS):
+          AP_SCRIPTS, EF_SCRIPTS, PK_SCRIPTS, FDC_SCRIPTS):
     sp = str(p)
     if sp not in sys.path:
         sys.path.insert(0, sp)

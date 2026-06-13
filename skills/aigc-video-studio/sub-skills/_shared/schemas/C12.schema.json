@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "C12.schema.json",
+  "title": "C12 · ReferenceWork（参考作品登记）",
+  "description": "逆向特征工程模块输入：登记一部参考作品的来源与人工标注（视觉+结构层）。媒体走 media-manifest 不入仓，仅文本/链接、不触网。设计稿 v5.0 第二部分 C12。",
+  "type": "object",
+  "required": ["ref_id", "title", "annotations"],
+  "additionalProperties": true,
+  "properties": {
+    "ref_id": { "type": "string", "description": "参考作品唯一标识" },
+    "title": { "type": "string", "description": "作品名" },
+    "source": {
+      "type": "string",
+      "description": "来源说明（链接/影片名，仅文本，不触网）"
+    },
+    "media_manifest_ref": {
+      "type": "string",
+      "description": "可选：媒体走 media-manifest 的引用键，媒体不入仓"
+    },
+    "annotations": {
+      "type": "object",
+      "description": "人工标注：visual 复用 reference_analyzer 视觉 6 维；structural 为结构层轴标注。",
+      "additionalProperties": true,
+      "properties": {
+        "visual": {
+          "type": "object",
+          "description": "视觉 6 维（palette/lighting/grain/composition/camera/pace），复用 reference_analyzer 归一。",
+          "additionalProperties": true
+        },
+        "structural": {
+          "type": "object",
+          "description": "结构层轴标注，键取自 feature-dictionary content 轴（hook_type/emotion_curve_shape/pacing/narrative_structure/shot_grammar）。",
+          "additionalProperties": true
+        }
+      }
+    },
+    "ip_note": {
+      "type": "string",
+      "description": "IP 备注：致敬/版权风险说明"
+    }
+  }
+}
