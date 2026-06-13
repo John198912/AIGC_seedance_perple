@@ -28,7 +28,8 @@ from _common import read_yaml, write_yaml, project_path, ensure_validate_importa
 ensure_validate_importable()
 from validate import validate_obj  # noqa: E402
 
-EVENT_TYPES = {"take_cost", "ai_qc_cost", "human_minutes", "hidden_cost", "stage_advance", "adjust"}
+EVENT_TYPES = {"take_cost", "ai_qc_cost", "human_minutes", "hidden_cost", "stage_advance",
+               "adjust", "g0_review"}
 
 
 def _ledger_dir(project: str | Path) -> Path:
