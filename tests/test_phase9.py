@@ -174,7 +174,9 @@ def test_advisory_two_anchors_audience_sourced_still_advisory():
 
 
 def test_advisory_behavior_stays_advisory_even_with_anchors():
-    # 行为域④即便有 2 独立锚点也维持 advisory、不门控。
+    # 行为域④即便有 2 独立锚点也维持 advisory、不门控；
+    # 并承接 M2「行为信号不可由解构直接观测」纪律：强制封顶 inferred，
+    # 绝不因 source_refs 被 final_tier 升回 sourced。
     feat = {"feature_axis": "engagement_behavior", "value": "rewatch_loop",
             "provenance": "sourced",
             "source_refs": [{"source_domain": "a"}, {"source_domain": "b"}]}
@@ -183,6 +185,8 @@ def test_advisory_behavior_stays_advisory_even_with_anchors():
     assert s["domain"] == "behavior"
     assert s["advisory"] is True
     assert s["gating"] is False
+    assert s["provenance"] == "inferred"   # 带双锚点也强制 inferred
+    assert s.get("forced_inferred") is True
 
 
 def test_advisory_skips_structural_content_axis():

@@ -83,9 +83,13 @@ def build_advisory(dna: dict[str, Any],
 
         # 最终档过 final_tier 兜底（只由外部锚点决定）。
         tier = prov.final_tier(feat)
-        # 行为域④即便有锚点也强制 advisory（承接 M2 forced inferred 精神）。
+        # 行为域④：承接 M2「行为信号不可由解构直接观测」纪律——即便带外部锚点
+        # 也强制封顶 inferred（绝不因 source_refs 被 final_tier 升回 sourced），
+        # 并标 forced_inferred，避免顾问块高估行为档位。
+        forced_inferred = False
         if domain == _BEHAVIOR_DOMAIN:
-            tier = prov.final_tier(feat)  # 档位仍诚实标注，但下方 advisory 恒 True
+            tier = "inferred"
+            forced_inferred = True
 
         suggestion = {
             "axis": feat.get("feature_axis") or feat.get("axis"),
@@ -97,6 +101,8 @@ def build_advisory(dna: dict[str, Any],
             "gating": False,           # 任何项 gating 恒为 false（永不门控）
             "rationale": feat.get("rationale") or feat.get("directive") or "",
         }
+        if forced_inferred:
+            suggestion["forced_inferred"] = True
         suggestions.append(suggestion)
 
     return {
