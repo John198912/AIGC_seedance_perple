@@ -47,7 +47,8 @@ def _selected_take_file(project: str | Path, shot_id: str) -> str | None:
 
 
 def extract(project: str | Path, *, top: int = 3) -> dict[str, Any]:
-    shotlist = read_yaml(project_path(project, "04_storyboard", "shotlist.yaml"))
+    sl_path = project_path(project, "04_storyboard", "shotlist.yaml")
+    shotlist = read_yaml(sl_path) if sl_path.exists() else {"shots": []}
     ranked = sorted(shotlist.get("shots", []), key=_score, reverse=True)
     candidates = []
     for shot in ranked[:top]:

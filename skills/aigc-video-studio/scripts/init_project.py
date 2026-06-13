@@ -97,6 +97,9 @@ def default_project(slug: str, title: str, profile: str) -> dict[str, Any]:
             "G1_concept": {"status": "pending"},
             "G3_character": {"status": "pending"},
             "G6_select": {"status": "pending"},
+            "G7_audio": {"status": "pending"},       # 可配置，默认自动放行（设计稿 §7.1）
+            "G8_integrity": {"status": "pending"},    # 完整性终审（强制人工）
+            "G9_publish": {"status": "pending"},      # 发布确认（不可逆，强制人工）
         },
         "budget": {
             "token_budget_cny": 3000,

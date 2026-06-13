@@ -14,7 +14,10 @@
   → select_take(落实人工选片)
   → advance_stage(逐阶段推进 + G3/G6 强制 Gate)
 
-设计稿明确：音画合成/粗剪不计入 MVP 验收，故本测试止于选片闭环。
+Phase 4 起延伸到发布全链路（V1 完整单片）：
+  选片(S6) → 音画 audio_manifest(S7) → 质检 qc_template(C10) + 剪辑 edl_render(S8)
+  → 发布包 render_variants(S9) → DONE，验证 G7(默认自动)/G8/G9 Gate。
+设计稿明确：音画合成/粗剪不计入 MVP 验收门槛，但 V1 链路打通仍需端到端验证。
 测试可复现：每次用 pytest tmp_path 全新项目目录，mock 产物确定性派生，不触网。
 """
 from __future__ import annotations
@@ -371,3 +374,148 @@ def test_auto_reject_take_cannot_be_selected(rusty_project):
 
     with pytest.raises(ValueError, match="auto_reject"):
         select_take.select_take(proj, shot_id, f"{shot_id}-fail", do_git=False)
+
+
+# --------------------------------------------------------------------------
+# 测试 5：发布全链路 S6选片 → S7_AUDIO_POST → S8_EDIT → S9_PUBLISH → DONE
+# --------------------------------------------------------------------------
+
+def _seed_all_takes_and_select(proj):
+    """为 6 镜各写一条可选 take 并选片（直接落 TakeLog，跳过生成细节）。"""
+    for shot in _shotlist()["shots"]:
+        sid = shot["shot_id"]
+        tid = f"{sid}-t01"
+        takelog = {
+            "shot_id": sid,
+            "takes": [{
+                "take_id": tid, "pass": "draft", "channel": "api",
+                "file": f"takes/{tid}.mp4",
+                "platform_meta": {"seed": 7, "model_version": "seedance-2.0"},
+                "scores": {}, "rejected_reason": None, "status": "ingested",
+            }],
+            "selected_take": tid, "rerun_history": [],
+        }
+        write_yaml(project_path(proj, "06_generations", sid, "takes.yaml"), takelog)
+
+
+def test_publish_pipeline_audio_edit_publish_to_done(rusty_project):
+    """全链路验收：选片后 S7 音画 → S8 剪辑 → S9 发布 → DONE，含 G7/G8/G9 Gate。"""
+    import audio_manifest
+    import qc_template
+    import edl_render
+    import render_variants
+
+    proj = rusty_project
+
+    # 前置：把项目状态推进到 S6（过 G3），并为 6 镜落选定 take
+    pj = read_yaml(project_path(proj, "project.yaml"))
+    pj["gates"]["G3_character"]["status"] = "passed"
+    pj["stage"] = "S6_GENERATION"
+    validate_obj(pj, "C1")
+    write_yaml(project_path(proj, "project.yaml"), pj)
+    _seed_all_takes_and_select(proj)
+
+    # 风格圣经（供 EDL 调色参数导出）
+    style_dir = project_path(proj, "03_style")
+    style_dir.mkdir(parents=True, exist_ok=True)
+    (style_dir / "style-bible.md").write_text(
+        "# 风格圣经\n- 色温：暖黄\n- 对比度：中高\n- 颗粒：胶片中等\n", encoding="utf-8")
+
+    # 关键断言①：G6 选片是强制人工 Gate —— 未 passed 不可进 S7
+    blocked = advance_stage.advance(proj, to="S7_AUDIO_POST", do_git=False)
+    assert blocked["advanced"] is False
+    assert blocked["check"]["required_gate"] == "G6_select"
+
+    # 人工过 G6
+    pj = read_yaml(project_path(proj, "project.yaml"))
+    pj["gates"]["G6_select"]["status"] = "passed"
+    write_yaml(project_path(proj, "project.yaml"), pj)
+
+    # --- SK8 音频：audio_manifest 产出 audio-plan.md + manifest（含版权登记/桥接） ---
+    a_res = audio_manifest.generate(proj)
+    assert Path(a_res["plan_out"]).exists()
+    assert (project_path(proj, "07_audio", "audio-plan.md")).exists()
+    manifest = read_yaml(project_path(proj, "07_audio", "audio-manifest.yaml"))
+    assert manifest["timeline"], "时间轴应非空"
+    # 相邻同 ambience_group 镜头标桥接（用例 6 镜同组）
+    assert any(e["bridge_prev"] for e in manifest["timeline"])
+
+    # 推进 S6 → S7（G6 已过）
+    r = advance_stage.advance(proj, to="S7_AUDIO_POST", do_git=False)
+    assert r["advanced"] is True, r.get("hints")
+
+    # --- SK7 质检：qc_template 产出 C10 报告（yaml + md），命中失败模式 ---
+    qc_res = qc_template.generate(proj)
+    qc_yaml = project_path(proj, "08_edit", "qc-report.yaml")
+    validate_file(qc_yaml, "C10")                 # 关键断言②：C10 校验通过
+    assert Path(qc_res["md_out"]).exists()
+    assert qc_res["pattern_matched"] > 0          # 接入 failure-patterns 命中
+
+    # --- SK9 剪辑：edl_render 产出 edl.md（拼接/转场/调色/QC 处置映射） ---
+    edl_res = edl_render.generate(proj)
+    edl_md = project_path(proj, "08_edit", "edl.md")
+    assert edl_md.exists()
+    assert edl_res["clip_count"] == 6
+    edl_text = edl_md.read_text(encoding="utf-8")
+    assert "统一调色" in edl_text and "硬切" in edl_text or "叠化" in edl_text
+
+    # 关键断言③：G7 音画合成确认默认自动 —— 不显式过也能 S7 → S8
+    r = advance_stage.advance(proj, to="S8_EDIT", do_git=False)
+    assert r["advanced"] is True, r.get("hints")
+    assert r["check"]["auto_gate"] == "G7_audio"
+
+    # --- SK10 发布：render_variants.build_package 产出各平台发布包 ---
+    pkg = render_variants.build_package(proj)
+    assert len(pkg["packages"]) == 2              # douyin + bilibili
+    for p in pkg["packages"]:
+        pdir = Path(p["dir"])
+        assert (pdir / "aigc-declaration.md").exists()   # AIGC 声明强制
+        assert (pdir / "variants.yaml").exists()
+        assert (pdir / "cover.yaml").exists()
+        assert (pdir / "metadata.yaml").exists()
+
+    # 关键断言④：G8 完整性终审为强制 Gate —— 未过不可进 S9
+    blocked = advance_stage.advance(proj, to="S9_PUBLISH", do_git=False)
+    assert blocked["advanced"] is False
+    assert blocked["check"]["required_gate"] == "G8_integrity"
+
+    pj = read_yaml(project_path(proj, "project.yaml"))
+    pj["gates"]["G8_integrity"]["status"] = "passed"
+    write_yaml(project_path(proj, "project.yaml"), pj)
+    r = advance_stage.advance(proj, to="S9_PUBLISH", do_git=False)
+    assert r["advanced"] is True, r.get("hints")
+
+    # 关键断言⑤：G9 发布确认（不可逆）为强制 Gate —— 未过不可达 DONE
+    blocked = advance_stage.advance(proj, to="DONE", do_git=False)
+    assert blocked["advanced"] is False
+    assert blocked["check"]["required_gate"] == "G9_publish"
+
+    pj = read_yaml(project_path(proj, "project.yaml"))
+    pj["gates"]["G9_publish"]["status"] = "passed"
+    write_yaml(project_path(proj, "project.yaml"), pj)
+    r = advance_stage.advance(proj, to="DONE", do_git=False)
+    assert r["advanced"] is True, r.get("hints")
+
+    # 终态断言：项目抵达 DONE
+    pj = read_yaml(project_path(proj, "project.yaml"))
+    assert pj["stage"] == "DONE"
+
+
+# --------------------------------------------------------------------------
+# 测试 6：G7 音画合成 Gate 被显式否决（rejected）时拦截 S7 → S8
+# --------------------------------------------------------------------------
+
+def test_g7_audio_gate_rejected_blocks_s8(rusty_project):
+    proj = rusty_project
+    # 直接把项目置于 S7，产物齐备
+    (project_path(proj, "07_audio", "audio-plan.md")).parent.mkdir(parents=True, exist_ok=True)
+    (project_path(proj, "07_audio", "audio-plan.md")).write_text("# plan\n", encoding="utf-8")
+    pj = read_yaml(project_path(proj, "project.yaml"))
+    pj["stage"] = "S7_AUDIO_POST"
+    pj["gates"]["G7_audio"]["status"] = "rejected"   # 人工/premium 否决音画
+    write_yaml(project_path(proj, "project.yaml"), pj)
+
+    blocked = advance_stage.advance(proj, to="S8_EDIT", do_git=False)
+    assert blocked["advanced"] is False
+    assert blocked["check"]["auto_gate"] == "G7_audio"
+    assert blocked["check"]["auto_gate_ok"] is False

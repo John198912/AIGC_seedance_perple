@@ -55,10 +55,20 @@ STAGE_ARTIFACTS: dict[str, list[str]] = {
     "S9_PUBLISH": ["09_publish/**/*"],
 }
 
-# 推进到某 stage 前，必须 passed 的强制人工 Gate（设计稿 §7.1：G3/G6 永不自动）。
+# 推进到某 stage 前，必须 passed 的强制人工 Gate（设计稿 §7.1：G3/G6 永不自动；
+# G8 完整性终审 / G9 发布确认 同为强制人工，发布不可逆）。
 STAGE_REQUIRED_GATE: dict[str, str] = {
     "S4_STORYBOARD": "G3_character",   # 离开 S3 进 S4 需角色定稿
     "S7_AUDIO_POST": "G6_select",      # 离开 S6 进 S7 需选片通过
+    "S9_PUBLISH": "G8_integrity",      # 离开 S8 进 S9 需完整性终审通过
+    "DONE": "G9_publish",              # 离开 S9 进 DONE 需发布确认（不可逆）
+}
+
+# 可配置 Gate（设计稿 §7.1：G7 音画合成确认，默认自动）。
+# 语义：默认 AUTO，不阻断；仅当显式 status=rejected 才拦截（如人工/premium 否决）。
+# 缺省（gate 不存在或 pending）视为自动放行。
+STAGE_AUTO_GATE: dict[str, str] = {
+    "S8_EDIT": "G7_audio",             # 离开 S7 进 S8：音画合成确认，默认自动
 }
 
 
@@ -91,22 +101,35 @@ def check_can_advance(project: str | Path, current: str, target: str) -> dict[st
     proj = read_yaml(project_path(project, "project.yaml"))
     missing = _artifacts_present(project, current)
 
+    gates = proj.get("gates") or {}
+
     gate_name = STAGE_REQUIRED_GATE.get(target)
     gate_ok = True
     gate_status = None
     if gate_name:
-        gate = (proj.get("gates") or {}).get(gate_name, {})
+        gate = gates.get(gate_name, {})
         gate_status = gate.get("status")
         gate_ok = gate_status == "passed"
 
+    # 可配置 Gate（G7）：默认自动放行，仅显式 rejected 拦截。
+    auto_gate_name = STAGE_AUTO_GATE.get(target)
+    auto_gate_ok = True
+    auto_gate_status = None
+    if auto_gate_name:
+        auto_gate_status = gates.get(auto_gate_name, {}).get("status")
+        auto_gate_ok = auto_gate_status != "rejected"
+
     return {
-        "ok": not missing and gate_ok,
+        "ok": not missing and gate_ok and auto_gate_ok,
         "current": current,
         "target": target,
         "missing_artifacts": missing,
         "required_gate": gate_name,
         "gate_status": gate_status,
         "gate_ok": gate_ok,
+        "auto_gate": auto_gate_name,
+        "auto_gate_status": auto_gate_status,
+        "auto_gate_ok": auto_gate_ok,
     }
 
 
@@ -145,6 +168,9 @@ def advance(project: str | Path, *, to: str | None = None, force: bool = False,
         if not check["gate_ok"]:
             hints.append(f"推进到 {target} 需 Gate {check['required_gate']} "
                          f"passed（当前：{check['gate_status']}）")
+        if not check.get("auto_gate_ok", True):
+            hints.append(f"推进到 {target} 的可配置 Gate {check['auto_gate']} "
+                         f"被否决（rejected），需复核音画合成")
         return {"advanced": False, "current": current, "target": target,
                 "check": check, "hints": hints}
 
