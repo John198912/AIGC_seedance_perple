@@ -12,8 +12,18 @@ SHARED_SCRIPTS = SKILL_BASE / "sub-skills" / "_shared" / "scripts"
 PC_SCRIPTS = SKILL_BASE / "sub-skills" / "prompt-compiler" / "scripts"
 GR_SCRIPTS = SKILL_BASE / "sub-skills" / "gen-runner" / "scripts"
 SK0_SCRIPTS = SKILL_BASE / "scripts"
+# Phase 2 子技能脚本目录
+SB_SCRIPTS = SKILL_BASE / "sub-skills" / "storyboard-director" / "scripts"
+SW_SCRIPTS = SKILL_BASE / "sub-skills" / "screenplay-writer" / "scripts"
+CF_SCRIPTS = SKILL_BASE / "sub-skills" / "character-foundry" / "scripts"
+QC_SCRIPTS = SKILL_BASE / "sub-skills" / "qc-review" / "scripts"
+AP_SCRIPTS = SKILL_BASE / "sub-skills" / "audio-post" / "scripts"
+EF_SCRIPTS = SKILL_BASE / "sub-skills" / "edit-finish" / "scripts"
+PK_SCRIPTS = SKILL_BASE / "sub-skills" / "publish-kit" / "scripts"
 
-for p in (SHARED_SCRIPTS, PC_SCRIPTS, GR_SCRIPTS, SK0_SCRIPTS):
+for p in (SHARED_SCRIPTS, PC_SCRIPTS, GR_SCRIPTS, SK0_SCRIPTS,
+          SB_SCRIPTS, SW_SCRIPTS, CF_SCRIPTS, QC_SCRIPTS,
+          AP_SCRIPTS, EF_SCRIPTS, PK_SCRIPTS):
     sp = str(p)
     if sp not in sys.path:
         sys.path.insert(0, sp)
@@ -46,3 +56,44 @@ def project_dir(tmp_path):
     res = init_project.init_project("test-proj", "测试项目",
                                     projects_root=str(tmp_path), do_git=False)
     return Path(res["project_dir"])
+
+
+def _write_yaml(path, data):
+    """测试辅助：写 yaml（不引入对脚本的依赖）。"""
+    import yaml
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(yaml.safe_dump(data, allow_unicode=True, sort_keys=False),
+                    encoding="utf-8")
+
+
+@pytest.fixture
+def write_yaml():
+    """暴露写 yaml 辅助给测试用。"""
+    return _write_yaml
+
+
+@pytest.fixture
+def shotlist_doc(shotlist_shot):
+    """一个最小合法的 shotlist 文档（C5），含两个镜头。"""
+    s2 = dict(shotlist_shot, shot_id="SHOT-08", order=8,
+              ambience_group="加油站", control_level="locked")
+    return {"meta": {"shot_count": 2}, "shots": [dict(shotlist_shot, ambience_group="加油站"), s2]}
+
+
+@pytest.fixture
+def make_takelog():
+    """构造一个合法 TakeLog（C9），take_id 可定制以触发 VLM 不同裁决分支。"""
+    def _make(shot_id="SHOT-07", take_ids=None):
+        take_ids = take_ids or [f"{shot_id}-t01", f"{shot_id}-t02"]
+        takes = []
+        for tid in take_ids:
+            takes.append({
+                "take_id": tid, "pass": "draft", "channel": "api",
+                "file": f"takes/{tid}.mp4",
+                "platform_meta": {"seed": 123, "model_version": "seedance-2.0"},
+                "scores": {}, "prompt_pattern_tags": ["推轨+逆光"],
+                "rejected_reason": None, "status": "ingested",
+            })
+        return {"shot_id": shot_id, "takes": takes,
+                "selected_take": None, "rerun_history": []}
+    return _make
