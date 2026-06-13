@@ -43,6 +43,12 @@ def build_api_card(genspec: dict[str, Any], rpass: dict[str, Any], tc_id: str) -
         references.append({"slot": placeholder, "file": _slot_file(genspec, sem),
                            "role": "身份/构图"})
 
+    # A.4 尾帧延续：上镜尾帧作为本镜首帧参考，注入参考槽 + 微动量提前量
+    cont = genspec.get("continuity")
+    if cont and cont.get("last_frame_file"):
+        references.append({"slot": "@PrevTail", "file": cont["last_frame_file"],
+                           "role": "尾帧延续"})
+
     card = {
         "task_id": tc_id,
         "shot_id": shot,
@@ -69,6 +75,8 @@ def build_api_card(genspec: dict[str, Any], rpass: dict[str, Any], tc_id: str) -
         "fallback": ["volcano:seedance-2.0"],
         "recycle_naming": f"{shot}-tNN_seed<seed>.mp4",
     }
+    if cont:
+        card["continuity"] = cont
     validate_obj(card, "C7")
     return card
 
@@ -101,10 +109,20 @@ def build_ui_card_md(genspec: dict[str, Any], rpass: dict[str, Any], tc_id: str)
     for i, s in enumerate(genspec.get("reference_slots", []), 1):
         refs_rows += f"| {i} | {s['file']} | {s['slot']} | {s.get('role', '')} |\n"
 
+    cont = genspec.get("continuity")
+    cont_block = ""
+    if cont:
+        lead = cont.get("micro_motion_lead_s")
+        cont_block = (
+            f"\n## 0. 尾帧延续（上镜衔接）\n"
+            f"- 上一镜：{cont.get('prev_shot', '（未指定）')}\n"
+            f"- 尾帧参考：`{cont.get('last_frame_file', '（无）')}`（作本镜起始构图基准）\n"
+            f"- 微动量提前量：{lead if lead is not None else 0}s（衔接处预留运动惯性，避免硬接顿挫）\n")
+
     return f"""# {tc_id} · {shot} 终渲（{platform} / {entry}）  【通道: UI · pass=final】
 **平台**: {platform} → {entry}    **模型**: {genspec.get('model', 'seedance-2.0')}
 **依赖**: draft 已选定 take（source_take={rpass.get('source_take', 'selected')}）
-
+{cont_block}
 ## 1. 上传（按 identity_strategy.ref_order 顺序）
 | # | 本地文件 | 平台槽位 | 用途 |
 |---|---|---|---|

@@ -27,8 +27,57 @@ from typing import Any
 SHARED_SCRIPTS = (Path(__file__).resolve().parent.parent
                   / "sub-skills" / "_shared" / "scripts")
 sys.path.insert(0, str(SHARED_SCRIPTS))
-from _common import read_yaml, project_path  # noqa: E402
+from _common import read_yaml, project_path, load_lib  # noqa: E402
 import ledger as _ledger  # noqa: E402
+
+
+def estimate_channel_cost(channel: str, *, seconds: float = 0.0,
+                          shots: int = 1) -> dict[str, Any]:
+    """按 channel-cost-map.yaml 估算渠道成本（A.5 渠道成本路由）。
+
+    api 类渠道按 cost_per_second_cny * 秒数计；ui 类按 credits_per_shot * 镜数（积分）。
+    数字仅来自挂 verified_at 的 channel-cost-map，确定性、不触网。
+    返回 {channel, unit, cost, verified_at, max_resolution}；未知渠道返回 supported=False。
+    """
+    cmap = load_lib("channel-cost-map.yaml").get("channels", {})
+    ch = cmap.get(channel)
+    if ch is None:
+        return {"channel": channel, "supported": False,
+                "reason": f"channel-cost-map 无 {channel} 条目（需补并挂 verified_at）"}
+    out: dict[str, Any] = {
+        "channel": channel,
+        "supported": True,
+        "type": ch.get("type"),
+        "max_resolution": ch.get("max_resolution"),
+        "verified_at": str(ch.get("verified_at")),
+    }
+    if ch.get("cost_per_second_cny") is not None:
+        out["unit"] = "cny"
+        out["cost"] = round(float(ch["cost_per_second_cny"]) * float(seconds), 2)
+    elif ch.get("credits_per_shot") is not None:
+        out["unit"] = "credits"
+        out["cost"] = float(ch["credits_per_shot"]) * int(shots)
+    else:
+        out["unit"] = "unknown"
+        out["cost"] = 0.0
+    return out
+
+
+def cheapest_channel(*, seconds: float = 0.0,
+                     min_resolution: str | None = None) -> dict[str, Any] | None:
+    """在 cny 计价的 api 渠道中选最便宜者（满足分辨率约束），供路由决策参考。"""
+    cmap = load_lib("channel-cost-map.yaml").get("channels", {})
+    best: dict[str, Any] | None = None
+    for name, ch in cmap.items():
+        if ch.get("cost_per_second_cny") is None:
+            continue
+        if min_resolution and ch.get("max_resolution") != min_resolution \
+                and min_resolution == "1080p" and ch.get("max_resolution") not in ("1080p",):
+            continue
+        est = estimate_channel_cost(name, seconds=seconds)
+        if best is None or est["cost"] < best["cost"]:
+            best = est
+    return best
 
 
 def effective_per_shot_cap(project_budget: dict[str, Any],
@@ -129,8 +178,18 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--genspec", help="GenSpec 路径（取其 per_shot_cost_cap 参与 min）")
     parser.add_argument("--qc-cost", type=float, default=0.0, help="本批新增 AI QC 预计成本 CNY")
     parser.add_argument("--no-record", action="store_true", help="只判定不写事件")
+    parser.add_argument("--channel", help="按 channel-cost-map 估算该渠道成本（路由参考）")
+    parser.add_argument("--seconds", type=float, default=0.0, help="估算用时长（秒）")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
+
+    if args.channel:
+        est = estimate_channel_cost(args.channel, seconds=args.seconds)
+        if args.json:
+            print(json.dumps(est, ensure_ascii=False))
+        else:
+            print(f"渠道 {args.channel} 估算：{est}")
+        return 0
 
     genspec = _load_genspec(args.genspec)
     result = guard_batch(args.project, shot_id=args.shot, batch_cost_cny=args.batch_cost,

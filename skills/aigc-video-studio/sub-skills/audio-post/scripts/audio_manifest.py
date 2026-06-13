@@ -146,13 +146,41 @@ def build_manifest(project: str | Path) -> dict[str, Any]:
         prev_group = shot.get("ambience_group")
 
     unregistered = [a["shot_id"] for a in assets if not a["registered"]]
+    ambience_groups = _build_ambience_groups(timeline)
     return {
         "total_duration_s": round(cursor, 2),
         "timeline": timeline,
         "assets": assets,
         "voice_bind": voice_binds,
+        "ambience_groups": ambience_groups,
         "copyright_warnings": unregistered,
     }
+
+
+def _build_ambience_groups(timeline: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """同 ambience_group 的镜头共享一条环境音轨（A.3，根治跨镜音频割裂）。
+
+    为每个含 ≥2 镜的组生成共享环境音资产：覆盖区间 = 组内最早入点→最晚出点，
+    成员镜头从该共享床混入，供 EDL「环境音桥接」轨道引用。
+    """
+    groups: dict[str, list[dict[str, Any]]] = {}
+    for e in timeline:
+        g = e.get("ambience_group")
+        if g:
+            groups.setdefault(g, []).append(e)
+    out: list[dict[str, Any]] = []
+    for g, members in groups.items():
+        if len(members) < 2:
+            continue  # 单镜无需跨镜共享床
+        out.append({
+            "ambience_group": g,
+            "shots": [m["shot_id"] for m in members],
+            "bed_start_s": min(m["start_s"] for m in members),
+            "bed_end_s": max(m["end_s"] for m in members),
+            "shared_asset": f"ambience/{g}.wav",
+            "note": "组内镜头共享同一环境音床，EDL 加“环境音桥接”轨道交叉淡入淡出",
+        })
+    return out
 
 
 def render_plan_md(project: str | Path, manifest: dict[str, Any]) -> str:
@@ -183,7 +211,7 @@ def render_plan_md(project: str | Path, manifest: dict[str, Any]) -> str:
             lines.append(f"- `{cid}` → `{ref}`（跨镜一致）")
         lines.append("")
 
-    # ambience 桥接
+    # ambience 桥接 + 共享环境音床
     bridges = [e["shot_id"] for e in manifest["timeline"] if e["bridge_prev"]]
     lines += ["## 环境音桥接（ambience_group）", ""]
     if bridges:
@@ -192,6 +220,14 @@ def render_plan_md(project: str | Path, manifest: dict[str, Any]) -> str:
     else:
         lines.append("无相邻同场景镜头，无需桥接。")
     lines.append("")
+    groups = manifest.get("ambience_groups", [])
+    if groups:
+        lines += ["**共享环境音床**（组内镜头共用一条环境音轨）：", "",
+                  "| 场景组 | 覆盖区间 | 共享资产 | 成员镜头 |", "|---|---|---|---|"]
+        for g in groups:
+            lines.append(f"| {g['ambience_group']} | {g['bed_start_s']}-{g['bed_end_s']}s "
+                         f"| `{g['shared_asset']}` | {', '.join(g['shots'])} |")
+        lines.append("")
 
     # 情绪节拍对齐（若有剧本情绪曲线）
     if emo:
@@ -229,6 +265,7 @@ def generate(project: str | Path, *, out: str | Path | None = None,
         "segment_count": len(manifest["timeline"]),
         "total_duration_s": manifest["total_duration_s"],
         "voice_bind": manifest["voice_bind"],
+        "ambience_groups": manifest["ambience_groups"],
         "copyright_warnings": manifest["copyright_warnings"],
     }
 

@@ -80,12 +80,13 @@ PROJECT_GITATTRIBUTES = """\
 """
 
 
-def default_project(slug: str, title: str, profile: str) -> dict[str, Any]:
-    """生成符合 C1 的最小可用 project.yaml。"""
+def default_project(slug: str, title: str, profile: str,
+                    fmt: str = "short_film") -> dict[str, Any]:
+    """生成符合 C1 的最小可用 project.yaml。fmt=series 时启用剧集模式。"""
     return {
         "id": slug,
         "title": title,
-        "format": "short_film",
+        "format": fmt,
         "profile": profile,
         "platform_strategy": "dual",
         "execution_default": "hybrid",
@@ -131,7 +132,7 @@ def default_project(slug: str, title: str, profile: str) -> dict[str, Any]:
             "avoid_annual_plan": True,
             "capabilities_reverify_days": 30,
         },
-        "episodes": None,
+        "episodes": [] if fmt == "series" else None,
         "versions": [],
     }
 
@@ -147,9 +148,10 @@ def _git_init(project_dir: Path) -> bool:
 
 
 def init_project(slug: str, title: str, *, profile: str = "premium",
+                 fmt: str = "short_film",
                  projects_root: str | Path = "projects",
                  do_git: bool = True) -> dict[str, Any]:
-    """创建项目骨架。返回结果摘要 dict。"""
+    """创建项目骨架。返回结果摘要 dict。fmt=series 时为剧集模式（共享角色/风格资产）。"""
     project_dir = Path(projects_root) / slug
     project_dir.mkdir(parents=True, exist_ok=True)
 
@@ -164,7 +166,7 @@ def init_project(slug: str, title: str, *, profile: str = "premium",
         created.append(sub)
 
     # project.yaml（C1）—— 写前校验
-    proj = default_project(slug, title, profile)
+    proj = default_project(slug, title, profile, fmt)
     validate_obj(proj, "C1")
     write_yaml(project_dir / "project.yaml", proj)
 
@@ -190,12 +192,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--title", required=True, help="项目标题")
     parser.add_argument("--profile", default="premium",
                         choices=["premium", "series", "rapid", "exploration"])
+    parser.add_argument("--format", dest="fmt", default="short_film",
+                        choices=["short_film", "series", "quick_test"],
+                        help="series=剧集量产模式（共享角色/风格资产）")
     parser.add_argument("--projects-root", default="projects")
     parser.add_argument("--no-git", action="store_true", help="跳过 git init")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
 
-    result = init_project(args.slug, args.title, profile=args.profile,
+    result = init_project(args.slug, args.title, profile=args.profile, fmt=args.fmt,
                           projects_root=args.projects_root, do_git=not args.no_git)
 
     if args.json:

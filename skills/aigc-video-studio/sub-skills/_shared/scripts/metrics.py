@@ -86,13 +86,64 @@ def collect(project: str | Path) -> dict[str, Any]:
     }
 
 
+def compare_ab(project: str | Path, tag_a: str, tag_b: str,
+               report: dict[str, Any] | None = None) -> dict[str, Any]:
+    """提示词 A/B 对比（S-P1-6 学习回路）：比较两个 prompt_pattern_tag 的命中率与单位成本。
+
+    返回各臂的抽卡/命中/命中率/单位命中成本，以及胜出臂（命中率优先，并列看单位成本）。
+    用于「同一镜多提示词变体并行 → 学习哪种模式更高效」。
+    """
+    report = report or collect(project)
+    by_tag = report.get("by_tag", {})
+    empty = {"takes": 0, "hits": 0, "hit_rate": 0.0, "cost_cny": 0.0, "cost_per_hit_cny": None}
+    a = by_tag.get(tag_a, dict(empty))
+    b = by_tag.get(tag_b, dict(empty))
+
+    def _winner() -> str | None:
+        if a["takes"] == 0 and b["takes"] == 0:
+            return None
+        if a["hit_rate"] != b["hit_rate"]:
+            return tag_a if a["hit_rate"] > b["hit_rate"] else tag_b
+        # 命中率并列 → 单位命中成本更低者胜（None 视为最差）
+        ca = a.get("cost_per_hit_cny")
+        cb = b.get("cost_per_hit_cny")
+        if ca is None and cb is None:
+            return None
+        if ca is None:
+            return tag_b
+        if cb is None:
+            return tag_a
+        if ca == cb:
+            return None
+        return tag_a if ca < cb else tag_b
+
+    return {
+        "arm_a": {"tag": tag_a, **{k: a.get(k) for k in empty}},
+        "arm_b": {"tag": tag_b, **{k: b.get(k) for k in empty}},
+        "winner": _winner(),
+        "hit_rate_delta": round(a["hit_rate"] - b["hit_rate"], 4),
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="prompt_pattern_tags 指标统计（SK0）")
+    parser = argparse.ArgumentParser(description="prompt_pattern_tags 指标统计 + A/B 对比（SK0）")
     parser.add_argument("--project", required=True)
+    parser.add_argument("--ab", nargs=2, metavar=("TAG_A", "TAG_B"),
+                        help="对比两个 prompt_pattern_tag 的命中率/单位成本")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
 
     report = collect(args.project)
+
+    if args.ab:
+        cmp = compare_ab(args.project, args.ab[0], args.ab[1], report=report)
+        if args.json:
+            print(json.dumps(cmp, ensure_ascii=False))
+        else:
+            print(f"A/B：{cmp['arm_a']['tag']} 率 {cmp['arm_a']['hit_rate']:.0%} "
+                  f"vs {cmp['arm_b']['tag']} 率 {cmp['arm_b']['hit_rate']:.0%} "
+                  f"→ 胜出：{cmp['winner'] or '并列/数据不足'}")
+        return 0
 
     if args.json:
         print(json.dumps(report, ensure_ascii=False))

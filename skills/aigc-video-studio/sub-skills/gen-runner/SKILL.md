@@ -47,7 +47,8 @@ model_version/耗时）→ 记账（追写 events.jsonl）→ 跑 `vlm_screen.py
 
 ## 脚本
 
-- `make_taskcards.py`（遍历 render_passes 按 (shot×pass) 出 UI/API 卡 + 批次清单）。
+- `make_taskcards.py`（遍历 render_passes 按 (shot×pass) 出 UI/API 卡 + 批次清单；
+  GenSpec.continuity 在 API 卡注入 @PrevTail 尾帧参考、UI 卡注入尾帧延续段，A.4）。
 - `ingest.py`（共享，含 pass + _unmatched 容错）。
 - `vlm_screen.py`（共享，协议分层初筛）。
 - `api_adapter.py`（共享，retry/fallback，凭证仅读 env）。

@@ -51,8 +51,26 @@ def check_card(card: dict[str, Any]) -> dict[str, Any]:
     if (card.get("compliance", {}) or {}).get("human_face"):
         warnings.append("compliance.human_face=true：建议改用非人类/风格化造型规避合规风险")
 
+    # variants 校验（剧集模式 S-P1-8）：variant_id 必填且角色内唯一；每变体 ref_set ≤9；
+    # 仅记差异、不全量复写（appearance_delta），避免变体间一致性漂移。
+    variants = card.get("variants") or []
+    seen_vids: set[str] = set()
+    for i, v in enumerate(variants):
+        vid = v.get("variant_id")
+        if not vid:
+            errors.append(f"variants[{i}] 缺 variant_id")
+            continue
+        if vid in seen_vids:
+            errors.append(f"variants 重复 variant_id：{vid}")
+        seen_vids.add(vid)
+        vref = v.get("ref_set") or []
+        if len(vref) > MAX_REF:
+            errors.append(f"variant {vid} 的 ref_set {len(vref)} 张超上限 {MAX_REF}")
+        if not (v.get("appearance_delta") or v.get("state")):
+            warnings.append(f"variant {vid} 未声明 state/appearance_delta，无法体现与基线差异")
+
     return {"id": card.get("id"), "errors": errors, "warnings": warnings,
-            "ok": not errors}
+            "variant_count": len(variants), "ok": not errors}
 
 
 def main(argv: list[str] | None = None) -> int:

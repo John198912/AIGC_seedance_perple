@@ -98,6 +98,25 @@ def load_qc_issues(project: str | Path) -> dict[str, list[dict[str, Any]]]:
     return by_shot
 
 
+def load_ambience_bridges(project: str | Path) -> list[dict[str, Any]]:
+    """读 07_audio/audio-manifest.yaml 的共享环境音床，转为 EDL「环境音桥接」轨道。
+
+    A.3：同 ambience_group 的镜头共用一条环境音床，剪辑层加桥接轨交叉淡入淡出，
+    根治「单段好、连起来散」的跨镜音频割裂。无音频清单时返回空。
+    """
+    am = project_path(project, "07_audio", "audio-manifest.yaml")
+    if not am.exists():
+        return []
+    groups = read_yaml(am).get("ambience_groups", []) or []
+    return [{
+        "ambience_group": g["ambience_group"],
+        "in_tc": _tc(g["bed_start_s"]),
+        "out_tc": _tc(g["bed_end_s"]),
+        "shared_asset": g.get("shared_asset", ""),
+        "shots": g.get("shots", []),
+    } for g in groups]
+
+
 def build_edl(project: str | Path) -> dict[str, Any]:
     shotlist = read_yaml(project_path(project, "04_storyboard", "shotlist.yaml"))
     shots = sorted(shotlist.get("shots", []), key=lambda s: s.get("order", 0))
@@ -148,6 +167,7 @@ def build_edl(project: str | Path) -> dict[str, Any]:
         "clips": clips,
         "subtitles": subtitles,
         "upscale_hints": upscale_hints,
+        "ambience_bridges": load_ambience_bridges(project),
         "color_grade": load_color_grade(project),
         "total_duration_s": round(cursor, 2),
         "qc_mapped": sum(len(v) for v in qc_by_shot.values()),
@@ -182,6 +202,21 @@ def render_md(edl: dict[str, Any]) -> str:
             lines.append(f"| {s['shot_id']} | {s['in_tc']} | {s['out_tc']} | {s['text']} |")
     else:
         lines.append("无对白/旁注，无字幕轨。")
+    lines.append("")
+
+    # 环境音桥接轨（A.3）
+    lines += ["## 环境音桥接轨", ""]
+    bridges = edl.get("ambience_bridges", [])
+    if bridges:
+        lines += ["| 场景组 | 入点 | 出点 | 共享环境音 | 成员镜头 |",
+                  "|---|---|---|---|---|"]
+        for b in bridges:
+            lines.append(f"| {b['ambience_group']} | {b['in_tc']} | {b['out_tc']} "
+                         f"| `{b['shared_asset']}` | {', '.join(b['shots'])} |")
+        lines.append("")
+        lines.append("> 组内镜头共用环境音床，转场处交叉淡入淡出，避免跨镜音频割裂。")
+    else:
+        lines.append("无跨镜共享环境音组。")
     lines.append("")
 
     # 超分/插帧建议

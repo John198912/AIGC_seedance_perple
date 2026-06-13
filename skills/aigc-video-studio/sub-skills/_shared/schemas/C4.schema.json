@@ -67,7 +67,18 @@
     "variants": {
       "type": "array",
       "description": "不同集/状态的角色变体（剧集模式 S-P1-8）",
-      "items": { "type": "object" }
+      "items": {
+        "type": "object",
+        "required": ["variant_id"],
+        "additionalProperties": true,
+        "properties": {
+          "variant_id": { "type": "string", "description": "变体 id（同角色内唯一）" },
+          "episode": { "type": "string", "description": "适用集（如 ep-02），空=全剧通用" },
+          "state": { "type": "string", "description": "状态/造型差异描述（如 受伤/换装）" },
+          "appearance_delta": { "type": "string", "description": "相对基线特征卡的外观差异（仅记差异，禁全量复写）" },
+          "ref_set": { "type": "array", "maxItems": 9, "items": { "type": "string" } }
+        }
+      }
     },
     "locked": { "type": "boolean", "description": "G3 通过后置 true" }
   }
