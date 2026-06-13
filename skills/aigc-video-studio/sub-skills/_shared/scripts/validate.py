@@ -35,6 +35,7 @@ CONTRACT_ALIASES = {
     "C8": "ledger",
     "C9": "takelog",
     "C10": "qcreport",
+    "C11": "feedback",
 }
 ALIAS_TO_CONTRACT = {v: k for k, v in CONTRACT_ALIASES.items()}
 

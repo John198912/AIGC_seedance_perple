@@ -10,7 +10,7 @@
 
 - **方法论层**：导演—演员范式 · 去 AI 味基座 · 四层提示词结构 · 批量抽卡 · 动态编剧法。
 - **技能层**：`aigc-video-studio` 技能包 = 1 个入口技能（SK0）+ 11 个功能技能（SK1–SK11d）+ 共享库。
-- **契约层**：10 个文件契约 C1–C10（project / brief / screenplay / character / shotlist / genspec / taskcard / ledger / takelog / qcreport），落为 JSON Schema，所有脚本读写前强制校验。
+- **契约层**：10 个核心文件契约 C1–C10（project / brief / screenplay / character / shotlist / genspec / taskcard / ledger / takelog / qcreport）+ V2.2+ 轻量契约 C11（audience-feedback 观众反馈，D-7），落为 JSON Schema，所有脚本读写前强制校验。
 - **执行层（混合）**：UI（人工，OpenArt / Higgsfield / 即梦）承接强交互/审美环节；API（自动，fal.ai / 火山方舟）承接确定性批量。
 - **资产层**：`projects/<slug>/` 文件树，文件即状态，Git 托管文本契约，媒体走 `.gitignore` + `media-manifest.yaml` 治理。
 
@@ -113,6 +113,24 @@ python skills/aigc-video-studio/scripts/init_project.py \
 | `_shared/scripts/api_adapter.py` | fal.ai/火山方舟直连（仅读环境变量凭证）+ retry/429退避/fallback；支持 dry_run/mock 模式 |
 
 **双 pass 生命周期**：一个镜头天然含两个生命周期 —— draft pass（API、中低档位、多 take 抽卡）→ final pass（默认 UI、高档位、仅中选 take 终渲）。`make_taskcards` 按 (shot × pass) 实例化：draft → API 卡 `TC-xxx.api.json`，final → UI 卡 `TC-xxx.md`。
+
+---
+
+## V2.2+ 扩展层路线图实现状态
+
+设计稿 §9 路线图扩展项，本阶段以"半自动 / 轻量优先"落地（已有契约/测试不回归）：
+
+| 项 | 能力 | 实现 | 纪律 |
+|---|---|---|---|
+| D-2 | 参考片风格迁移 | `prompt-compiler/scripts/reference_analyzer.py` → `03_style/style-transfer-suggestion.md` | 半自动·mock 视觉分析·描述符需人工确认 |
+| D-3 | 剪辑工程自动生成 | `edit-finish/scripts/project_export.py` → 剪映清单 `capcut-draft.json` + `timeline.fcpxml` | 半自动·媒体占位·NLE 内人工重链 |
+| D-4 | Git 分支式团队协作 | `references/collaboration.md` | 轻量·无内置权限·借 Git PR |
+| D-6 | 资产复用索引深化 | `scripts/reuse_shots.py` → 带标签 `asset-index.yaml` | 标签 + 来源 + hash + reuse_scope |
+| D-7 | 观众反馈闭环 | 契约 C11 + `scripts/feedback_intake.py` → 回写经验库 | 轻量·仅经验文本不入契约能力数字 |
+| Q-8 | 多平台发布自动化 | `publish-kit/scripts/publish_automation.py` → 一键清单 | 半自动·不代发·G9 终确认 |
+| Q-9 | 任务卡 UI 截图位 | C7 + `make_taskcards.py` 增 `ui_screenshot_slots`/`annotations` | 回贴截图走 media-manifest·不入 git |
+| Q-10 | 失败模式库深化 | `libs/failure-patterns.yaml` FP-001..011 + `qc_template.py` 细化匹配 | 命中即给最低成本 remedy |
+| Q-12 | 隐性成本统计 | `_shared/scripts/cost_report.py` → 隐性成本报告 | 在事件源账本上投影·工时折算率为口径参数 |
 
 ---
 

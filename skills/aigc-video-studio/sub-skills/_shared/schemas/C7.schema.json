@@ -63,7 +63,26 @@
       }
     },
     "fallback": { "type": "array", "items": { "type": "string" } },
-    "recycle_naming": { "type": "string", "description": "API 卡 seed 段必填的命名模板" }
+    "recycle_naming": { "type": "string", "description": "API 卡 seed 段必填的命名模板" },
+    "ui_screenshot_slots": {
+      "type": "array",
+      "description": "Q-9 UI 卡执行截图位：执行后回贴 UI 操作截图路径（走 media-manifest，不入 git 实体）",
+      "items": {
+        "type": "object",
+        "required": ["slot"],
+        "additionalProperties": true,
+        "properties": {
+          "slot": { "type": "string", "description": "截图位语义名，如 upload_done / params_set / result_preview" },
+          "file": { "type": ["string", "null"], "description": "回贴的截图相对路径（占位，媒体不入仓）" },
+          "annotation": { "type": "string", "description": "对该步操作的文字标注" }
+        }
+      }
+    },
+    "annotations": {
+      "type": "array",
+      "description": "Q-9 执行标注：人工在执行过程中追加的备注（不影响机读生成参数）",
+      "items": { "type": "string" }
+    }
   },
   "allOf": [
     {

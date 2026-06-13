@@ -31,6 +31,18 @@ def _tc_id(n: int) -> str:
     return f"TC-{n:03d}"
 
 
+# Q-9 UI 卡执行截图位（执行后回贴 UI 操作截图，走 media-manifest，不入 git 实体）
+UI_SCREENSHOT_SLOTS = ["upload_done", "params_set", "result_preview"]
+
+
+def _ui_screenshot_slots() -> list[dict[str, Any]]:
+    """生成默认 UI 截图位骨架（file 留空待执行回贴）。"""
+    notes = {"upload_done": "参考图按 ref_order 上传完成截图",
+             "params_set": "分辨率/画幅/运镜预设设定截图",
+             "result_preview": "生成结果预览/选片截图"}
+    return [{"slot": s, "file": None, "annotation": notes[s]} for s in UI_SCREENSHOT_SLOTS]
+
+
 def build_api_card(genspec: dict[str, Any], rpass: dict[str, Any], tc_id: str) -> dict[str, Any]:
     """draft pass -> API 卡（机读，C7）。"""
     shot = genspec["shot_id"]
@@ -77,6 +89,9 @@ def build_api_card(genspec: dict[str, Any], rpass: dict[str, Any], tc_id: str) -
     }
     if cont:
         card["continuity"] = cont
+    # Q-9 执行截图位（API 卡也保留，回贴 UI/控制台操作截图，走 media-manifest 不入仓）
+    card["ui_screenshot_slots"] = _ui_screenshot_slots()
+    card["annotations"] = []
     validate_obj(card, "C7")
     return card
 
@@ -142,7 +157,16 @@ def build_ui_card_md(genspec: dict[str, Any], rpass: dict[str, Any], tc_id: str)
 
 ## 6. 验收自查
 {_acceptance_md(genspec)}
+
+## 7. 执行截图位（Q-9 · 回贴 UI 操作截图，走 media-manifest 不入 git）
+{_ui_screenshot_md()}
 """
+
+
+def _ui_screenshot_md() -> str:
+    """UI 卡截图位清单（待执行回贴，file 留空走 media-manifest）。"""
+    return "\n".join(f"- [ ] {s['slot']}：{s['annotation']}（截图路径回贴 media-manifest）"
+                     for s in _ui_screenshot_slots())
 
 
 def _acceptance_md(genspec: dict[str, Any]) -> str:

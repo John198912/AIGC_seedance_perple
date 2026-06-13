@@ -1,29 +1,84 @@
 # 失败模式库（设计稿 §5 SK7，Q-10，按模型/平台分类 + 修复路径）
 # QC 命中即给修复路径。处置优先级：剪辑规避 > 局部重跑 > 整镜重做。
+# 每条含：症状 symptom / 根因 root_cause / 最低成本处置 remedy / 关联 rejected_reason
+#（rejected_reason 用于与 TakeLog.rejected_reason 对齐，反查命中模式）。
 
 patterns:
   - id: FP-001
     name: 角色面部漂移
     applies_to: [seedance-2.0, kling-3.0]
     symptom: 跨帧面部特征不一致
+    root_cause: 身份参考权重不足 / 多参考冲突 / 提示词未锁身份
     remedy: 局部重跑（强化 prompt_lock + negative，提高身份参考优先级）
+    rejected_reason: character_drift
   - id: FP-002
     name: 运镜方向反向
     applies_to: [seedance-2.0]
     symptom: 提示"推近"但实际拉远
+    root_cause: 运镜语义歧义 / 模型对中文运镜词理解偏差
     remedy: 局部重跑（仅改运镜描述，bump GenSpec.version）
+    rejected_reason: camera_move_wrong
   - id: FP-003
     name: 穿模 / 多余肢体
     applies_to: [seedance-2.0, veo-3.1]
     symptom: 肢体穿透物体或多出肢体
+    root_cause: 高速动作 / 复杂遮挡下生成失稳
     remedy: 局部重跑（强化 negative：no extra limbs / no clip-through）
+    rejected_reason: anatomy_error
   - id: FP-004
     name: 时代错配
     applies_to: [all]
     symptom: 背景出现现代字体/物件
+    root_cause: 场景约束词不足 / 模型默认现代语境
     remedy: 剪辑规避（裁切/遮挡）或局部重跑（场景约束词）
+    rejected_reason: anachronism
   - id: FP-005
     name: 塑料感 / AI 味
     applies_to: [all]
     symptom: 皮肤过度平滑、过饱和 AI 色彩
+    root_cause: 缺第零层去 AI 味基座 / 后期过度锐化
     remedy: 局部重跑（强化第零层去 AI 味基座词）
+    rejected_reason: ai_texture
+  # —— Q-10 深化：补更多高频失败模式 ——
+  - id: FP-006
+    name: 跨镜风格漂移
+    applies_to: [all]
+    symptom: 相邻镜头色调/光照/质感不连续，连起来"散"
+    root_cause: 各镜独立抽卡未共享 style-bible / 调色基准
+    remedy: 剪辑规避（统一调色 LUT）或局部重跑（注入同一 style_core）
+    rejected_reason: style_drift
+  - id: FP-007
+    name: 动作不可读
+    applies_to: [seedance-2.0, kling-3.0]
+    symptom: 关键动作主体被遮挡/过快/景别过远，观众读不出在做什么
+    root_cause: 景别与动作不匹配 / 行为逻辑分层缺动作层
+    remedy: 局部重跑（拉近景别 + 补行为逻辑动作层，放慢关键帧）
+    rejected_reason: action_unreadable
+  - id: FP-008
+    name: 质感作假
+    applies_to: [all]
+    symptom: 材质反光/重量感不真实（金属像塑料、布料无垂坠）
+    root_cause: 材质描述缺失 / 物理光照线索不足
+    remedy: 局部重跑（补材质+光照描述词，参考真实材质关键词）
+    rejected_reason: fake_texture
+  - id: FP-009
+    name: 节奏拖沓
+    applies_to: [all]
+    symptom: 镜头时长过长/信息密度低，成片节奏拖
+    root_cause: 分镜时长估计偏大 / 缺剪辑点
+    remedy: 剪辑规避（裁切冗余段/加快剪辑频率，不重跑生成）
+    rejected_reason: poor_pacing
+  - id: FP-010
+    name: 多模态打架
+    applies_to: [all]
+    symptom: 画面与音频/字幕/口型不一致，原生音与画面动作错位
+    root_cause: audio_mode 与画面动作未对齐 / 字幕轨时间码偏移
+    remedy: 剪辑规避（音画对位微调）或局部重跑（关闭原生音改后期配音）
+    rejected_reason: multimodal_conflict
+  - id: FP-011
+    name: 光照不连续
+    applies_to: [all]
+    symptom: 同场景相邻镜光源方向/色温跳变
+    root_cause: 未锁定场景光照基准 / 抽卡随机光照
+    remedy: 局部重跑（注入统一光照描述）或剪辑规避（调色拉齐）
+    rejected_reason: lighting_jump

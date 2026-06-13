@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "C11.schema.json",
+  "title": "C11 · AudienceFeedback（观众反馈闭环 D-7，轻量）",
+  "description": "发布后收集的观众反馈聚合结构。结构化采集 → 聚合 → 回写 cross-project-lessons.yaml/metrics 形成学习回路。社区/观众启发仅入经验文本，不进可执行契约能力数字。设计稿 §9 路线图 D-7。",
+  "type": "object",
+  "required": ["project_id", "items"],
+  "additionalProperties": true,
+  "properties": {
+    "project_id": { "type": "string" },
+    "title": { "type": "string" },
+    "collected_at": { "type": "string", "description": "ISO 日期" },
+    "items": {
+      "type": "array",
+      "description": "逐条原始反馈",
+      "items": {
+        "type": "object",
+        "required": ["platform", "sentiment"],
+        "additionalProperties": true,
+        "properties": {
+          "platform": { "type": "string", "description": "来源平台，如 douyin/bilibili" },
+          "sentiment": {
+            "type": "string",
+            "enum": ["positive", "neutral", "negative"],
+            "description": "情感倾向"
+          },
+          "category": {
+            "type": "string",
+            "description": "反馈类别，如 节奏/画质/剧情/角色/配乐 等"
+          },
+          "shot_ref": { "type": "string", "description": "可选：关联镜头 SHOT-xx" },
+          "text": { "type": "string", "description": "原始评论文本" },
+          "metric": {
+            "type": "object",
+            "description": "可选：量化指标（点赞/完播率等）",
+            "additionalProperties": { "type": "number" }
+          }
+        }
+      }
+    },
+    "aggregate": {
+      "type": "object",
+      "description": "由 items 聚合派生（feedback_intake 写入）",
+      "additionalProperties": true,
+      "properties": {
+        "total": { "type": "integer", "minimum": 0 },
+        "by_sentiment": {
+          "type": "object",
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        },
+        "by_category": {
+          "type": "object",
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        },
+        "sentiment_score": {
+          "type": "number",
+          "description": "正向占比 - 负向占比，∈[-1,1]"
+        },
+        "top_negative_categories": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}

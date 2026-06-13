@@ -33,12 +33,15 @@ from validate import validate_obj  # noqa: E402
 # 白皮书踩坑表标准检查类别（顺序即 issues 生成顺序，test_p2_smoke 依赖 2 镜 × 6 项）
 CHECK_CATEGORIES = ["角色漂移", "穿模", "透视异常", "时代错配", "AI逻辑错误", "音画不同步"]
 
-# 检查类别 → failure-patterns.yaml 模式 id 的语义映射（命中即取其 remedy）
+# 检查类别 → failure-patterns.yaml 模式 id 的语义映射（命中即取其 remedy）。
+# Q-10 深化：透视异常 → 运镜反向(FP-002)；音画不同步 → 多模态打架(FP-010)，命中更细。
 CATEGORY_TO_FP = {
     "角色漂移": "FP-001",
     "穿模": "FP-003",
+    "透视异常": "FP-002",
     "时代错配": "FP-004",
     "AI逻辑错误": "FP-005",  # 塑料感/AI 味归入 AI 逻辑错误范畴
+    "音画不同步": "FP-010",
 }
 
 # 处置优先级（数值越小成本越低，用于排序展示）
@@ -58,6 +61,19 @@ def load_failure_patterns() -> dict[str, dict[str, Any]]:
         return {}
     data = read_yaml(fp_path)
     return {p["id"]: p for p in data.get("patterns", []) if p.get("id")}
+
+
+def pattern_by_rejected_reason(reason: str,
+                               fps: dict[str, dict[str, Any]] | None = None
+                               ) -> dict[str, Any] | None:
+    """Q-10：按 TakeLog.rejected_reason 反查命中的失败模式（命中即给 remedy）。"""
+    if not reason:
+        return None
+    fps = fps or load_failure_patterns()
+    for p in fps.values():
+        if p.get("rejected_reason") == reason:
+            return p
+    return None
 
 
 def _shot_time_index(shots: list[dict[str, Any]]) -> dict[str, str]:
