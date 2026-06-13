@@ -1,0 +1,32 @@
+# VLM 初筛配置（设计稿 §3.2 C9 / §5 SK7，S-P1-2 协议分层）
+# 推理成本计入 ledger ai_qc_costs。
+
+# 协议分层
+protocols:
+  static:                 # 单帧：判身份/质感/时代错误等静态项
+    frames_sampled: [mid]
+    checks: [identity, artifacts, anachronism]
+  dynamic:                # 首-中-尾三帧：判运镜方向、动作可读性等时间维度
+    frames_sampled: [first, mid, last]
+    checks: [identity, motion_direction, action_readability, artifacts]
+
+# 裁决规则
+verdict_rules:
+  auto_reject:
+    condition: "confidence > 0.9 AND identity == FAIL"   # 硬伤才自动废片
+  auto_accept: false                                      # VLM 永不 auto_accept（决策权在人）
+  unverifiable_when: "置信不足，或只能单帧判但需多帧证据"
+
+# 阈值
+thresholds:
+  confidence_min: 0.6
+
+# 成本单价（示意，挂 verified_at）
+cost:
+  per_inference_cny: 0.05
+  verified_at: 2026-06-01
+
+# VLM 提示词锚点（占位，后续阶段填充实际提示词）
+prompts:
+  identity: "判断角色面部/服装与参考是否一致，输出 pass/fail + confidence"
+  motion_direction: "对比首-中-尾三帧，判断运镜方向是否符合预期"

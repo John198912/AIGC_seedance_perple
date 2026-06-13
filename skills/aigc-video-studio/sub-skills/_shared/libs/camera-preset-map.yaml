@@ -1,0 +1,24 @@
+# 自然语言运镜 → Higgsfield 预设名映射（设计稿 §6.4）
+# API 通道无预设，回退 fallback_text。
+
+缓慢推轨:
+  higgsfield_preset: "Super Dolly In"
+  fallback_text: "slow dolly in, gradually approaching subject"
+拉远:
+  higgsfield_preset: "Dolly Out"
+  fallback_text: "slow dolly out, gradually pulling away from subject"
+环绕跟随:
+  higgsfield_preset: "360 Orbit"
+  fallback_text: "camera orbits around subject smoothly"
+手持跟拍:
+  higgsfield_preset: "Handheld"
+  fallback_text: "handheld tracking shot, slight natural shake"
+甩镜:
+  higgsfield_preset: "Whip Pan"
+  fallback_text: "fast whip pan transition"
+急速变焦:
+  higgsfield_preset: "Crash Zoom"
+  fallback_text: "rapid crash zoom onto subject"
+升降镜:
+  higgsfield_preset: "Crane Up"
+  fallback_text: "crane shot rising upward"

@@ -1,0 +1,4 @@
+# 核心依赖（MVP 闭环必需）
+# 设计稿 §8：Python 3.11+ 标准库 + pyyaml + jsonschema
+pyyaml>=6.0
+jsonschema>=4.0

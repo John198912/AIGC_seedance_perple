@@ -1,0 +1,29 @@
+# 失败模式库（设计稿 §5 SK7，Q-10，按模型/平台分类 + 修复路径）
+# QC 命中即给修复路径。处置优先级：剪辑规避 > 局部重跑 > 整镜重做。
+
+patterns:
+  - id: FP-001
+    name: 角色面部漂移
+    applies_to: [seedance-2.0, kling-3.0]
+    symptom: 跨帧面部特征不一致
+    remedy: 局部重跑（强化 prompt_lock + negative，提高身份参考优先级）
+  - id: FP-002
+    name: 运镜方向反向
+    applies_to: [seedance-2.0]
+    symptom: 提示"推近"但实际拉远
+    remedy: 局部重跑（仅改运镜描述，bump GenSpec.version）
+  - id: FP-003
+    name: 穿模 / 多余肢体
+    applies_to: [seedance-2.0, veo-3.1]
+    symptom: 肢体穿透物体或多出肢体
+    remedy: 局部重跑（强化 negative：no extra limbs / no clip-through）
+  - id: FP-004
+    name: 时代错配
+    applies_to: [all]
+    symptom: 背景出现现代字体/物件
+    remedy: 剪辑规避（裁切/遮挡）或局部重跑（场景约束词）
+  - id: FP-005
+    name: 塑料感 / AI 味
+    applies_to: [all]
+    symptom: 皮肤过度平滑、过饱和 AI 色彩
+    remedy: 局部重跑（强化第零层去 AI 味基座词）

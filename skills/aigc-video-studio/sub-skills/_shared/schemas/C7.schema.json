@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "C7.schema.json",
+  "title": "C7 · TaskCard（API 卡机读结构 TC-xxx.api.json）",
+  "description": "按 (shot × pass) 实例化：draft→API 卡(机读)、final→UI 卡(markdown)。本 schema 校验机读 API 卡。UI 卡为人类可读 markdown，不走 schema。设计稿 §3.2 C7。",
+  "type": "object",
+  "required": ["task_id", "shot_id", "pass", "channel", "platform", "model"],
+  "additionalProperties": true,
+  "properties": {
+    "task_id": { "type": "string", "pattern": "^TC-[0-9]+$" },
+    "shot_id": { "type": "string", "pattern": "^SHOT-[0-9]+$" },
+    "pass": { "type": "string", "enum": ["draft", "final"] },
+    "channel": { "type": "string", "enum": ["api", "ui"] },
+    "platform": { "type": "string" },
+    "model": { "type": "string" },
+    "endpoint": { "type": "string" },
+    "params": {
+      "type": "object",
+      "properties": {
+        "resolution": { "type": "string" },
+        "duration_s": { "type": "number", "minimum": 0 },
+        "aspect": { "type": "string" }
+      }
+    },
+    "reference_label_map": {
+      "type": "object",
+      "description": "语义名 -> API 占位符",
+      "additionalProperties": { "type": "string" }
+    },
+    "references": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["slot", "file"],
+        "properties": {
+          "slot": { "type": "string" },
+          "file": { "type": "string" },
+          "role": { "type": "string" }
+        }
+      }
+    },
+    "prompt_compiled_en": { "type": "string" },
+    "prompt_compiled_zh": { "type": "string" },
+    "seed_list": {
+      "type": "array",
+      "description": "API 必填、必回写",
+      "items": { "type": "integer" }
+    },
+    "rolling": {
+      "type": "object",
+      "properties": {
+        "takes_planned": { "type": "integer", "minimum": 0 },
+        "max_takes": { "type": "integer", "minimum": 0 },
+        "bayesian": { "type": "boolean" }
+      }
+    },
+    "retry": {
+      "type": "object",
+      "properties": {
+        "max_retries": { "type": "integer", "minimum": 0 },
+        "backoff": { "type": "string" },
+        "on_429": { "type": "string" }
+      }
+    },
+    "fallback": { "type": "array", "items": { "type": "string" } },
+    "recycle_naming": { "type": "string", "description": "API 卡 seed 段必填的命名模板" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "channel": { "const": "api" } } },
+      "then": { "required": ["endpoint", "seed_list", "recycle_naming"] }
+    }
+  ]
+}

@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "C1.schema.json",
+  "title": "C1 · project.yaml（项目状态机）",
+  "description": "项目状态机 + 全局配置 + 平台风险。设计稿 §3.2 C1。",
+  "type": "object",
+  "required": ["id", "title", "format", "profile", "platform_strategy", "stage"],
+  "additionalProperties": true,
+  "properties": {
+    "id": { "type": "string", "description": "项目 slug（kebab-case）" },
+    "title": { "type": "string" },
+    "format": { "type": "string", "enum": ["short_film", "series", "quick_test"] },
+    "profile": { "type": "string", "enum": ["premium", "series", "rapid", "exploration"] },
+    "platform_strategy": {
+      "type": "string",
+      "enum": ["dual", "openart_only", "higgsfield_only", "jimeng_only", "api_first", "manual_only"]
+    },
+    "execution_default": { "type": "string", "enum": ["hybrid", "ui_only", "api_first"] },
+    "target_platform": { "type": "array", "items": { "type": "string" } },
+    "aspect_ratio": { "type": "string" },
+    "duration_target_s": { "type": "number", "minimum": 0 },
+    "stage": { "type": "string" },
+    "gates": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["status"],
+        "properties": {
+          "status": { "type": "string", "enum": ["pending", "passed", "rejected"] },
+          "at": {},
+          "note": { "type": "string" },
+          "commit": { "type": "string" }
+        }
+      }
+    },
+    "budget": {
+      "type": "object",
+      "properties": {
+        "token_budget_cny": { "type": "number", "minimum": 0 },
+        "alert_threshold": { "type": "number", "minimum": 0, "maximum": 1 },
+        "per_shot_cost_cap_cny": { "type": "number", "minimum": 0 },
+        "ai_qc_cost_cap_cny": { "type": "number", "minimum": 0 }
+      }
+    },
+    "api_config": {
+      "type": "object",
+      "description": "API 通道实现层配置（S-P0-5）。凭证仅走环境变量名，禁出现密钥明文。",
+      "properties": {
+        "fal_key_env": { "type": "string" },
+        "volcano_ak_env": { "type": "string" },
+        "max_concurrent": { "type": "integer", "minimum": 1 },
+        "queue_backend": { "type": "string" },
+        "retry_429": {
+          "type": "object",
+          "properties": {
+            "max": { "type": "integer", "minimum": 0 },
+            "backoff": { "type": "string" },
+            "base_s": { "type": "number", "minimum": 0 }
+          }
+        },
+        "balance_alert_cny": { "type": "number", "minimum": 0 },
+        "fallback_on_quota_exhausted": { "type": "string" },
+        "health_heartbeat_min": { "type": "number", "minimum": 0 }
+      }
+    },
+    "language": {
+      "type": "object",
+      "description": "语言策略（S-P1-9）",
+      "properties": {
+        "ui_lang": { "type": "string" },
+        "compiled_lang_by_channel": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      }
+    },
+    "platform_risk": {
+      "type": "object",
+      "properties": {
+        "primary": { "type": "string" },
+        "fallback_chain": { "type": "array", "items": { "type": "string" } },
+        "local_is_source_of_truth": { "type": "boolean" },
+        "avoid_annual_plan": { "type": "boolean" },
+        "capabilities_reverify_days": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "episodes": { "type": ["array", "null"] },
+    "versions": { "type": "array" }
+  }
+}

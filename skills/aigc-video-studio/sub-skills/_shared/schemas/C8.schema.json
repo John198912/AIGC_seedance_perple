@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "C8.schema.json",
+  "title": "C8 · Ledger（成本账本，事件源设计）",
+  "description": "事件源：ledger/events.jsonl（append-only 流水）+ ledger/summary.yaml（由事件重算的投影快照）。含 hidden_costs / ai_qc_costs / human_minutes。设计稿 §3.2 C8 / §4 单写者矩阵。",
+  "type": "object",
+  "required": ["summary"],
+  "additionalProperties": true,
+  "properties": {
+    "summary": { "$ref": "#/$defs/summary" },
+    "events": {
+      "type": "array",
+      "description": "可选：内联事件列表（实际持久化为 events.jsonl 每行一条）",
+      "items": { "$ref": "#/$defs/event" }
+    }
+  },
+  "$defs": {
+    "event": {
+      "type": "object",
+      "description": "events.jsonl 单条事件（追加写，event_id 幂等去重）",
+      "required": ["event_id", "ts", "type"],
+      "additionalProperties": true,
+      "properties": {
+        "event_id": { "type": "string", "description": "幂等键，重复回调不重复记账" },
+        "ts": { "type": "string", "description": "ISO8601 时间戳" },
+        "type": {
+          "type": "string",
+          "enum": ["take_cost", "ai_qc_cost", "human_minutes", "hidden_cost", "stage_advance", "adjust"]
+        },
+        "shot_id": { "type": "string" },
+        "taskcard": { "type": "string" },
+        "pass": { "type": "string", "enum": ["draft", "final"] },
+        "channel": { "type": "string", "enum": ["api", "ui"] },
+        "credits": { "type": "number" },
+        "cny": { "type": "number" },
+        "minutes": { "type": "number" },
+        "category": { "type": "string" },
+        "note": { "type": "string" }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "description": "由事件流重放重建的派生快照",
+      "required": ["total_cny"],
+      "additionalProperties": true,
+      "properties": {
+        "total_cny": { "type": "number", "minimum": 0 },
+        "total_credits": { "type": "number", "minimum": 0 },
+        "by_shot": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "cny": { "type": "number" },
+              "credits": { "type": "number" },
+              "take_count": { "type": "integer", "minimum": 0 }
+            }
+          }
+        },
+        "ai_qc_costs": { "type": "number", "minimum": 0, "description": "VLM/Judge 推理费" },
+        "human_minutes": { "type": "number", "minimum": 0 },
+        "hidden_costs": {
+          "type": "object",
+          "description": "平台订阅/时间/学习成本",
+          "additionalProperties": { "type": "number" }
+        },
+        "event_count": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

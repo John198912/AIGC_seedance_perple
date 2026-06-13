@@ -1,0 +1,54 @@
+# 机读平台能力表（设计稿 §1 / §8 verified_at 纪律）
+# 设计纪律：所有易变平台能力数字只进本表并挂 verified_at + 来源，月度重验。
+# 脚本读取时校验过期（>30 天）即告警。删 Sora。
+
+reverify_days: 30
+
+models:
+  seedance-2.0:
+    provider: bytedance
+    native_resolution: 1080p          # 原生 1080p（2K 为消费端超分，不作终渲承诺）
+    multimodal_reference:
+      total_files: 12                  # 跨模态总文件上限（fal.ai 官方 "Total files ≤ 12"）
+      per_modality:
+        image: 9
+        video: 3
+        audio: 3
+    native_audio: true
+    verified_at: 2026-06-01
+    source: "https://fal.ai/models/bytedance/seedance-2.0/fast/reference-to-video/api"
+
+platforms:
+  openart:
+    role: 图像模型 + 角色训练 + Story
+    character_methods: [text, single_image, multi_image_4plus]
+    verified_at: 2026-06-01
+    source: "https://openart.ai/ai-model/seedance-2-0/"
+  higgsfield:
+    role: 导演型工作室（Cinema Studio / 运镜预设 / Shots / Angles / Transitions / Grid）
+    camera_presets_count: 70          # 70+ 运镜预设（修正自旧版误写 "50+"）
+    character_anchor_refs: "20-30"
+    verified_at: 2026-06-01
+    source: "https://higgsfield.ai/camera-controls"
+    risk_note: "历史封号/节流/涨价/年付不退风险；避免年付，本地为唯一事实源"
+  jimeng:
+    role: 即梦（火山引擎）沉浸式短片 · 中文原生
+    verified_at: 2026-06-01
+    source: "https://seed.bytedance.com/zh/seedance2_0"
+
+channels:
+  falai:
+    type: api
+    endpoints:
+      - fal-ai/bytedance/seedance-2.0/fast/reference-to-video
+    resolution_enum: [480p, 720p, 1080p]   # 详情页枚举（营销页仅 480p/720p，口径不一）
+    reference_tag_syntax: "@ImageN"          # 当前语法；旧版 [ImageN]
+    available_since: 2026-04-09
+    verified_at: 2026-06-01
+    source: "https://fal.ai/seedance-2.0"
+  volcano:
+    type: api
+    note: 火山方舟个人可接入
+    available_since: 2026-04-14
+    verified_at: 2026-06-01
+    source: "https://seed.bytedance.com/zh/seedance2_0"

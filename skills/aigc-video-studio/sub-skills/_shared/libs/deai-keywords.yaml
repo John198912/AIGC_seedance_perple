@@ -1,0 +1,40 @@
+# 去 AI 味词库（设计稿 §6.0，按风格分组）
+# 第零层·去 AI 味基座：在四层结构之前强制注入，作为全片质感下限。
+# SK5 按 style-bible 选取对应风格组。prompt_qc.py 校验缺失则阻断。
+
+# 通用基座（所有风格共享的正/反向强制词）
+base:
+  positive:
+    - 超写实质感
+    - 真实电影摄影
+    - 胶片颗粒
+    - 自然皮肤纹理
+    - 真实材质
+    - 真实光线衰减与阴影
+    - 镜头呼吸
+    - 轻微手持感
+    - 景深与焦外自然
+  negative:
+    - no CG look
+    - no plastic skin
+    - no over-smooth
+    - 磨皮
+    - no uncanny valley
+    - no over-saturated AI colors
+    - no waxy texture
+    - no perfect symmetry
+
+# 按风格分组的适配真实质感词
+by_style:
+  废土:
+    positive: [锈蚀金属真实质感, 沙尘颗粒, 漆面剥落细节, 黄昏逆光衰减]
+    negative: [no clean surfaces, no neon glow]
+  赛博:
+    positive: [真实霓虹光晕衰减, 湿润街面反射, 雾气体积光]
+    negative: [no flat lighting, no plastic neon]
+  水墨:
+    positive: [真实宣纸纤维, 墨色自然晕染, 留白呼吸]
+    negative: [no digital gradient, no oversharp edges]
+  纪实:
+    positive: [真实新闻镜头质感, 自然环境光, 轻微噪点]
+    negative: [no cinematic over-grade, no studio lighting]

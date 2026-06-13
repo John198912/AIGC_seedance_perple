@@ -1,0 +1,26 @@
+# 各渠道每秒/每镜成本 + 分辨率上限（设计稿 §5 / §1，挂 verified_at）
+# 终渲默认 UI，仅当通道经 verified_at 确认支持目标分辨率才可走 API 终渲。
+# 价格为示意，权威以 verified_at 快照为准，月度重验。
+
+channels:
+  falai_reference_to_video:
+    type: api
+    provider: falai
+    max_resolution: 1080p           # 详情页枚举（营销页仅 720p，口径不一）
+    cost_per_second_cny: 0.8        # 示意
+    verified_at: 2026-06-01
+    source: "https://fal.ai/seedance-2.0"
+  volcano_seedance:
+    type: api
+    provider: volcano
+    max_resolution: 1080p
+    cost_per_second_cny: 0.6        # 示意
+    verified_at: 2026-06-01
+    source: "https://seed.bytedance.com/zh/seedance2_0"
+  higgsfield_cinema_studio:
+    type: ui
+    provider: higgsfield
+    max_resolution: 1080p
+    credits_per_shot: 24            # 示意积分
+    verified_at: 2026-06-01
+    source: "https://higgsfield.ai/camera-controls"

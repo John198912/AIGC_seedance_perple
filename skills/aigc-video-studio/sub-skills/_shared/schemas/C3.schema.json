@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "C3.schema.json",
+  "title": "C3 · Screenplay（02_screenplay/screenplay.md 的结构化前置）",
+  "description": "剧本：梗概/分场/情绪曲线(0-10)/角色简报。设计稿 §3.2 C3 / §5 SK2。",
+  "type": "object",
+  "required": ["synopsis", "scenes"],
+  "additionalProperties": true,
+  "properties": {
+    "synopsis": { "type": "string", "description": "梗概" },
+    "scenes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["scene_id", "location", "emotion_value"],
+        "properties": {
+          "scene_id": { "type": "string" },
+          "location": { "type": "string" },
+          "time": { "type": "string" },
+          "characters_present": { "type": "array", "items": { "type": "string" } },
+          "core_action": { "type": "string" },
+          "emotion_value": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 10,
+            "description": "情绪值 0-10"
+          },
+          "est_shot_count": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "emotion_curve": {
+      "type": "array",
+      "description": "情绪曲线（与 scenes 对齐）",
+      "items": {
+        "type": "object",
+        "properties": {
+          "scene_id": { "type": "string" },
+          "value": { "type": "number", "minimum": 0, "maximum": 10 }
+        }
+      }
+    },
+    "character_briefs": {
+      "type": "array",
+      "description": "按 C4 feature_card 预格式化的角色简报",
+      "items": {
+        "type": "object",
+        "required": ["id"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "role": { "type": "string" },
+          "feature_card_draft": { "type": "object" }
+        }
+      }
+    },
+    "episode_id": { "type": ["string", "null"] }
+  }
+}

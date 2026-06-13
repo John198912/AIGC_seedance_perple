@@ -1,0 +1,24 @@
+# 模型智能路由表（设计稿 §5 SK5 步骤⑦ / §1，删 Sora）
+# 按 shotlist.lens_type 查表选模型。默认 Seedance 2.0。
+
+default: seedance-2.0
+
+rules:
+  - lens_type: narrative_main          # 叙事主力
+    model: seedance-2.0
+  - lens_type: high_quality_empty      # 高画质空镜
+    model: veo-3.1
+  - lens_type: low_cost_multishot      # 低成本多镜头
+    model: kling-3.0
+  - lens_type: restyling               # 风格迁移
+    model: wan-2.7
+  - lens_type: frame_control_hdr       # 帧级控制 / HDR
+    model: luma-ray-3.2
+
+# 复杂多人表演分镜直出第三路径（需 verified_at 核验官方文档）
+storyboard_path:
+  model: kling-3.0-omni-multishot
+  note: "Multi-Shot Storyboard + AI Director；能力数字落地前按 capabilities.yaml verified_at 核验"
+
+# 已删除（格局过时）
+removed: [sora-2]

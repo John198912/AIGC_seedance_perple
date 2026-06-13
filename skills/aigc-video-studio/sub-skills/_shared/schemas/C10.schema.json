@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "C10.schema.json",
+  "title": "C10 · QCReport（08_edit/qc-report.md 的结构化前置）",
+  "description": "质检评审报告：问题定位到镜头+时间码，每条分级 blocker/major/minor + AI 置信度 + 最低成本处置建议。设计稿 §3.2 C10 / §5 SK7。",
+  "type": "object",
+  "required": ["shot_id_scope", "issues"],
+  "additionalProperties": true,
+  "properties": {
+    "shot_id_scope": {
+      "type": "string",
+      "description": "检查范围：单镜 SHOT-xx 或 sequence / master"
+    },
+    "check_level": {
+      "type": "string",
+      "enum": ["shot", "sequence", "master"],
+      "description": "A 镜头级 / B 序列级 / C 成片级"
+    },
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["severity", "description"],
+        "properties": {
+          "shot_id": { "type": "string" },
+          "timecode": { "type": "string", "description": "时间码定位，如 00:03-00:05" },
+          "severity": {
+            "type": "string",
+            "enum": ["blocker", "major", "minor"]
+          },
+          "category": {
+            "type": "string",
+            "description": "角色漂移/穿模/透视异常/时代错配/AI逻辑错误/音画不同步"
+          },
+          "description": { "type": "string" },
+          "ai_confidence": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+          "failure_pattern_ref": { "type": "string", "description": "命中 failure-patterns.yaml 的模式 id" },
+          "remedy": {
+            "type": "string",
+            "description": "最低成本处置：剪辑规避 > 局部重跑 > 整镜重做"
+          }
+        }
+      }
+    },
+    "verdict": {
+      "type": "string",
+      "enum": ["pass", "needs_fix", "reject"]
+    }
+  }
+}

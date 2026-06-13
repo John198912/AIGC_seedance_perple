@@ -1,0 +1,26 @@
+# 通道/模型路由规则初始集（设计稿 §5 SK5 / §附，S-P2-4 种子）
+# 与 model-router-rules.yaml（按 lens_type 选模型）互补：本表按 control_level + execution_default 决定通道分流。
+
+# 按 control_level 的默认 pass 组合
+by_control_level:
+  locked:
+    # 叙事关键帧：可只保 final 一 pass（直接走 UI 高保真）
+    passes: [final]
+    final: {channel: ui, resolution: 1080p}
+  guided:
+    passes: [draft, final]
+    draft: {channel: api, resolution: 720p}
+    final: {channel: ui, resolution: 1080p}
+  free:
+    # 氛围空镜：放手赌即兴，draft 抽卡为主
+    passes: [draft]
+    draft: {channel: api, resolution: 720p}
+
+# 按 execution_default 覆盖
+by_execution_default:
+  hybrid:   {draft_channel: api, final_channel: ui}
+  ui_only:  {draft_channel: ui, final_channel: ui}
+  api_first: {draft_channel: api, final_channel: api}   # 仅 verified_at 确认通道支持目标分辨率
+
+# 配额耗尽降级
+fallback_on_quota_exhausted: ui_only

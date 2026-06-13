@@ -1,0 +1,24 @@
+# 敏感词语义替换表（活文档，设计稿 §6.3 种子内容）
+# 生成被平台拦截时，由 SK6 记录拦截词并回写本表。
+
+replacements:
+  - sensitive: "丧尸"
+    replace_with: "皮肤溃烂、行动扭曲的人形生物"
+  - sensitive: "僵尸"
+    replace_with: "皮肤溃烂、行动扭曲的人形生物"
+  - sensitive: "开枪"
+    replace_with: "器械前端喷出火光，目标应声倒下"
+  - sensitive: "射击"
+    replace_with: "器械前端喷出火光，目标应声倒下"
+  - sensitive: "血液"
+    replace_with: "深色液体飞溅"
+  - sensitive: "血浆"
+    replace_with: "深色液体飞溅"
+
+# 硬禁止（无替换，定角阶段即规避）
+forbidden:
+  - "真人明星 / 公众人物（改用虚构角色描述）"
+  - "真实人脸上传（定角阶段即用非人类/风格化造型）"
+
+# 平台拦截回写区（运行时追加）
+intercepted_log: []

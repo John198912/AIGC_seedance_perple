@@ -1,0 +1,11 @@
+# 参考图上传缓存表（设计稿 §4 单写者矩阵，去重/复用 platform asset id）
+# 唯一写者：api_adapter.py / 平台手册上传步骤。其他角色只读。
+# 以本地文件 hash 为键，避免重复上传同一参考图。
+
+entries: {}
+# 示例条目结构（运行时追加）：
+# <sha256>:
+#   local_file: 03_characters/robo-cowboy/turnaround/front.png
+#   platform: falai
+#   asset_id: fal_asset_xxx
+#   uploaded_at: 2026-06-01T10:00:00Z

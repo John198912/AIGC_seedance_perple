@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "C6.schema.json",
+  "title": "C6 · GenSpec（05_prompts/genspecs/SHOT-xx.yaml）",
+  "description": "生成规格。render_passes[] 双 pass + 槽位预算分配 + reference_label_map + 贝叶斯可编码停止 + 两级 Prompt QC。设计稿 §3.2 C6。",
+  "type": "object",
+  "required": ["shot_id", "version", "model", "prompt", "render_passes", "prompt_qc"],
+  "additionalProperties": true,
+  "properties": {
+    "shot_id": { "type": "string", "pattern": "^SHOT-[0-9]+$" },
+    "version": { "type": "integer", "minimum": 1, "description": "提示词版本号" },
+    "changelog": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["v"],
+        "properties": {
+          "v": { "type": "integer" },
+          "note": { "type": "string" },
+          "from_take": { "type": "string" }
+        }
+      }
+    },
+    "model": { "type": "string" },
+    "audio_mode": {
+      "type": "string",
+      "enum": ["native", "post_mix", "voice_bind"]
+    },
+    "prompt": {
+      "type": "object",
+      "description": "四层结构编译结果（含第零层去AI味）+ 双语 compiled",
+      "required": ["layer0_deai", "layer1_setting", "layer2_style", "layer3_shot"],
+      "properties": {
+        "layer0_deai": { "type": "string" },
+        "layer1_setting": { "type": "string" },
+        "layer2_style": { "type": "string" },
+        "layer3_shot": { "type": "string" },
+        "compiled_zh": { "type": "string", "description": "中文版（火山/即梦用）" },
+        "compiled_en": { "type": "string", "description": "English version (fal/Higgsfield/OpenArt)" }
+      }
+    },
+    "reference_slots": {
+      "type": "array",
+      "description": "由槽位预算分配器产出（受 9/3/3 + 总 12 约束）",
+      "items": {
+        "type": "object",
+        "required": ["file", "slot", "role", "priority"],
+        "properties": {
+          "file": { "type": "string" },
+          "slot": {
+            "type": "string",
+            "enum": ["image", "video", "audio", "start_frame", "end_frame"]
+          },
+          "role": {
+            "type": "string",
+            "enum": ["identity", "composition", "motion", "style", "environment"]
+          },
+          "priority": { "type": "integer", "minimum": 1 }
+        }
+      }
+    },
+    "slots_dropped": {
+      "type": "array",
+      "description": "超总 12 时按优先级裁剪的清单（供人工复核）",
+      "items": {
+        "type": "object",
+        "properties": {
+          "file": { "type": "string" },
+          "slot": { "type": "string" },
+          "role": { "type": "string" },
+          "priority": { "type": "integer" },
+          "reason": { "type": "string" }
+        }
+      }
+    },
+    "reference_label_map": {
+      "type": "object",
+      "description": "prompt 内引用标签映射（按端点方言）。语义名 -> @ImageN/[ImageN]。",
+      "additionalProperties": { "type": "string" }
+    },
+    "continuity": {
+      "type": "object",
+      "properties": {
+        "prev_shot": { "type": "string" },
+        "last_frame_file": { "type": "string" },
+        "micro_motion_lead_s": { "type": "number", "minimum": 0 }
+      }
+    },
+    "render_passes": {
+      "type": "array",
+      "description": "双 pass 生命周期（取代单标量 execution_channel/resolution）",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["pass", "channel", "resolution"],
+        "properties": {
+          "pass": { "type": "string", "enum": ["draft", "final"] },
+          "channel": { "type": "string", "enum": ["api", "ui"] },
+          "endpoint": { "type": "string" },
+          "entry": { "type": "string" },
+          "platform": { "type": "string" },
+          "resolution": { "type": "string" },
+          "camera_handling": { "type": "string" },
+          "camera_preset": { "type": "string" },
+          "source_take": { "type": "string" },
+          "rolling": {
+            "type": "object",
+            "description": "可编码贝叶斯停止",
+            "properties": {
+              "takes_planned": { "type": "integer", "minimum": 0 },
+              "max_takes": { "type": "integer", "minimum": 0 },
+              "qualified_def": { "type": "string", "description": "二元达标定义" },
+              "prior": { "type": "string", "description": "Beta 先验，如 Beta(1,3)" },
+              "stop_rule": { "type": "string" },
+              "fallback_simple_rule": { "type": "string", "description": "实现期可退回的保底规则" }
+            }
+          }
+        }
+      }
+    },
+    "per_shot_cost_cap_cny": {
+      "type": "number",
+      "minimum": 0,
+      "description": "GenSpec 只能下调（更严）；上调需 Gate；budget_guard 按 min(project, genspec)"
+    },
+    "compliance_applied": { "type": "array", "items": { "type": "string" } },
+    "prompt_qc": {
+      "type": "object",
+      "description": "两级处理：结构硬阻断 + 语义评分仅排序",
+      "required": ["structural_blockers"],
+      "properties": {
+        "structural_blockers": {
+          "type": "array",
+          "description": "八要素缺项=硬阻断（确定性，无噪声）",
+          "items": { "type": "string" }
+        },
+        "craft_score": { "type": ["number", "null"], "minimum": 0, "maximum": 100, "description": "语义评分，阈值建议 >=75" },
+        "deai_score": { "type": ["number", "null"], "minimum": 0, "maximum": 100, "description": "阈值建议 >=70" },
+        "rubric_anchor_drift": { "type": ["number", "null"], "description": "单锚点偏差，>15 告警漂移" }
+      }
+    },
+    "acceptance": { "type": "array", "items": { "type": "string" } }
+  }
+}

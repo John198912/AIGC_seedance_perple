@@ -1,0 +1,10 @@
+# 可选依赖（API 直连 / VLM 初筛 / LLM-as-Judge）
+# 设计稿 §8：API/VLM 脚本可选 httpx 与多模态模型 SDK，与核心闭环隔离。
+# 缺失这些依赖时，api_adapter 仍可在 dry_run/mock 模式下返回确定性产物。
+
+# API 直连（fal.ai / 火山方舟）HTTP 客户端
+httpx>=0.27
+
+# 以下为占位说明，按实际平台 SDK 选装：
+# VLM 初筛 / LLM-as-Judge 多模态模型 SDK（按所选模型供应商安装）
+# 例如：openai>=1.0 / anthropic>=0.30 / volcengine-python-sdk

@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "C4.schema.json",
+  "title": "C4 · CharacterCard（03_characters/<id>/card.yaml）",
+  "description": "角色特征卡。删伪参数 weight，改 identity_strategy（ref_order + prompt_lock + negative，双语）。设计稿 §3.2 C4。",
+  "type": "object",
+  "required": ["id", "name", "feature_card", "identity_strategy"],
+  "additionalProperties": true,
+  "properties": {
+    "id": { "type": "string", "description": "角色 id（kebab-case）" },
+    "name": { "type": "string" },
+    "role": { "type": "string" },
+    "compliance": {
+      "type": "object",
+      "properties": {
+        "human_face": { "type": "boolean" },
+        "note": { "type": "string" }
+      }
+    },
+    "feature_card": {
+      "type": "object",
+      "description": "特征卡 = 提示词角色设定层的唯一来源",
+      "required": ["appearance"],
+      "properties": {
+        "appearance": { "type": "string" },
+        "materials": { "type": "string" },
+        "accessories": { "type": "string" },
+        "silhouette": { "type": "string" },
+        "behavior_traits": { "type": "string", "description": "行为逻辑增强素材库" }
+      }
+    },
+    "turnaround": {
+      "type": "object",
+      "description": "多视图（可选社区实践）",
+      "properties": {
+        "front": { "type": "string" },
+        "side": { "type": "string" },
+        "back": { "type": "string" }
+      }
+    },
+    "ref_set": {
+      "type": "array",
+      "description": "扩充参考集（≤9 张，喂多模态参考）",
+      "maxItems": 9,
+      "items": { "type": "string" }
+    },
+    "identity_strategy": {
+      "type": "object",
+      "description": "取代伪参数 weight。主机制=prompt_lock+negative，ref_order 为辅（顺序即权重为社区观察、未经官方确认）。",
+      "required": ["prompt_lock_zh", "prompt_lock_en", "negative_zh", "negative_en"],
+      "properties": {
+        "ref_order": { "type": "array", "items": { "type": "string" } },
+        "prompt_lock_zh": { "type": "string" },
+        "prompt_lock_en": { "type": "string" },
+        "negative_zh": { "type": "string" },
+        "negative_en": { "type": "string" }
+      }
+    },
+    "voice_ref": { "type": ["string", "null"], "description": "声纹绑定资产路径（S-P2-6，默认空）" },
+    "platform_assets": {
+      "type": "object",
+      "properties": {
+        "openart": { "type": "object" },
+        "higgsfield": { "type": "object" }
+      }
+    },
+    "variants": {
+      "type": "array",
+      "description": "不同集/状态的角色变体（剧集模式 S-P1-8）",
+      "items": { "type": "object" }
+    },
+    "locked": { "type": "boolean", "description": "G3 通过后置 true" }
+  }
+}

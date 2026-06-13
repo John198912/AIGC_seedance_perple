@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "C2.schema.json",
+  "title": "C2 · ProjectBrief（01_brief/brief.md 的结构化前置）",
+  "description": "项目蓝图：logline/世界观/风格基调/参考片/画幅/时长/平台/单片或剧集判定。设计稿 §3.2 C2 / §5 SK1。",
+  "type": "object",
+  "required": ["logline", "format"],
+  "additionalProperties": true,
+  "properties": {
+    "logline": { "type": "string", "description": "一句话故事核心" },
+    "format": { "type": "string", "enum": ["short_film", "series", "quick_test"] },
+    "worldview": { "type": "string", "description": "世界观设定" },
+    "tone": { "type": "string", "description": "风格基调" },
+    "style_keywords": { "type": "array", "items": { "type": "string" } },
+    "reference_works": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "note": { "type": "string" }
+        }
+      }
+    },
+    "aspect_ratio": { "type": "string" },
+    "duration_target_s": { "type": "number", "minimum": 0 },
+    "target_platform": { "type": "array", "items": { "type": "string" } },
+    "directions": {
+      "type": "array",
+      "description": "2-3 个差异化方向（每个含 logline + 风格关键词 + 预估成本档）",
+      "items": {
+        "type": "object",
+        "required": ["logline"],
+        "properties": {
+          "logline": { "type": "string" },
+          "style_keywords": { "type": "array", "items": { "type": "string" } },
+          "cost_tier": { "type": "string" }
+        }
+      }
+    },
+    "compliance_flags": {
+      "type": "object",
+      "description": "合规前置：真人脸/敏感题材/IP 致敬风险",
+      "properties": {
+        "human_face": { "type": "boolean" },
+        "sensitive_topic": { "type": "boolean" },
+        "ip_homage": { "type": "boolean" },
+        "note": { "type": "string" }
+      }
+    },
+    "episode_plan": { "type": ["object", "null"] }
+  }
+}

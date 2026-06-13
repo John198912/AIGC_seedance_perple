@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "C9.schema.json",
+  "title": "C9 · TakeLog（06_generations/SHOT-xx/takes.yaml）",
+  "description": "候选片登记。增 pass/seed/agent_vlm(protocol/verdict)/rejected_reason。设计稿 §3.2 C9。",
+  "type": "object",
+  "required": ["shot_id", "takes"],
+  "additionalProperties": true,
+  "properties": {
+    "shot_id": { "type": "string", "pattern": "^SHOT-[0-9]+$" },
+    "takes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["take_id", "pass", "file", "channel"],
+        "additionalProperties": true,
+        "properties": {
+          "take_id": { "type": "string" },
+          "pass": { "type": "string", "enum": ["draft", "final"] },
+          "file": { "type": "string" },
+          "source_taskcard": { "type": "string" },
+          "channel": { "type": "string", "enum": ["api", "ui"] },
+          "platform_meta": {
+            "type": "object",
+            "description": "强制追溯",
+            "properties": {
+              "seed": { "type": ["integer", "null"], "description": "API 必回写；UI 不可见时记 null" },
+              "model_version": { "type": "string" },
+              "generation_time_s": { "type": "number", "minimum": 0 },
+              "resolution": { "type": "string" }
+            }
+          },
+          "scores": {
+            "type": "object",
+            "properties": {
+              "human": { "type": ["integer", "null"], "minimum": 0, "maximum": 5 },
+              "agent_vlm": {
+                "type": "object",
+                "description": "VLM 初筛（一等公民）+ 协议分层",
+                "properties": {
+                  "protocol": {
+                    "type": "string",
+                    "enum": ["static", "dynamic"],
+                    "description": "static=单帧；dynamic=首-中-尾三帧"
+                  },
+                  "frames_sampled": { "type": "array", "items": { "type": "string" } },
+                  "identity": { "type": "string" },
+                  "motion_direction": { "type": "string" },
+                  "action_readability": { "type": "string" },
+                  "artifacts": { "type": "object" },
+                  "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+                  "verdict": {
+                    "type": "string",
+                    "enum": ["pass_to_human", "auto_reject", "unverifiable"],
+                    "description": "VLM 永不 auto_accept"
+                  }
+                }
+              }
+            }
+          },
+          "prompt_pattern_tags": { "type": "array", "items": { "type": "string" } },
+          "rejected_reason": {
+            "type": ["string", "null"],
+            "description": "枚举：漂移|运镜错|动作不可读|质感假|节奏差"
+          },
+          "issues": { "type": "array", "items": { "type": "string" } },
+          "status": { "type": "string" }
+        }
+      }
+    },
+    "selected_take": { "type": ["string", "null"] },
+    "rerun_history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "reason": { "type": "string" },
+          "changed": { "type": "string" },
+          "taskcard": { "type": "string" },
+          "genspec_version": { "type": "integer" }
+        }
+      }
+    }
+  }
+}

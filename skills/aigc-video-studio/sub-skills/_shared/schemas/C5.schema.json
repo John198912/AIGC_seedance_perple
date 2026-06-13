@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "C5.schema.json",
+  "title": "C5 · Shotlist（04_storyboard/shotlist.yaml）",
+  "description": "分镜表 = 镜头级真相源。增 control_level / lens_type / ambience_group / 坐标化构图。设计稿 §3.2 C5。",
+  "type": "object",
+  "required": ["shots"],
+  "additionalProperties": true,
+  "properties": {
+    "meta": {
+      "type": "object",
+      "properties": {
+        "scene_count": { "type": "integer", "minimum": 0 },
+        "shot_count": { "type": "integer", "minimum": 0 },
+        "est_duration_s": { "type": "number", "minimum": 0 }
+      }
+    },
+    "shots": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["shot_id", "order", "duration_s", "control_level"],
+        "additionalProperties": true,
+        "properties": {
+          "shot_id": { "type": "string", "pattern": "^SHOT-[0-9]+$" },
+          "scene": { "type": "string" },
+          "order": { "type": "integer", "minimum": 0 },
+          "duration_s": { "type": "number", "minimum": 0, "maximum": 15, "description": "每镜 ≤15s" },
+          "characters": { "type": "array", "items": { "type": "string" } },
+          "scene_ref": { "type": "string" },
+          "ambience_group": { "type": "string", "description": "同场景共享环境音" },
+          "shot_size": { "type": "string" },
+          "lens_type": { "type": "string", "description": "供 model-router 选模型" },
+          "control_level": {
+            "type": "string",
+            "enum": ["locked", "guided", "free"],
+            "description": "决定首帧/预设/留白强度"
+          },
+          "camera_move": { "type": "string" },
+          "composition": { "type": "string", "description": "坐标化构图（三分/对角线模板写法）" },
+          "action_logic": { "type": "string", "description": "动作 + 动机/因果" },
+          "audio_cue": { "type": "string" },
+          "variant": {
+            "type": "string",
+            "enum": ["i2v_omni", "t2v", "multigrid", "recreate"]
+          },
+          "first_frame": { "type": ["string", "null"], "description": "control_level=free 时为 null" },
+          "status": { "type": "string" }
+        }
+      }
+    }
+  }
+}
