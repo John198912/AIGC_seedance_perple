@@ -32,4 +32,26 @@ description: 把主题/灵感扩展为 ProjectBrief（C2）：logline/世界观/
 
 ## 脚本
 
-无（纯推理，复用 `validate.py` 校验 C2）。
+- 纯推理部分复用 `validate.py` 校验 C2。
+- `scripts/concept_advisory.py`：对标驱动顾问路径（M3，见下）。
+
+## 对标驱动顾问路径（M3）
+
+把逆向特征工程（SK12）产出的 **C14 CreativeDNA / reverse-map** 转成 concept-brief 的
+**对标驱动顾问建议**，仅覆盖受众①(target_audience)、场景②(viewing_scene)、行为④
+(engagement hints) 三类**顾问增强**轴。
+
+**硬规则**（承接 SK12 M2 三级来源 / 决策点4）：
+
+- ①②④ 为**顾问增强、永不门控、创作者可覆盖**——绝不进硬约束、`gating` 恒为 `false`。
+- 每条建议的最终 `provenance` 过 `provenance.final_tier` 兜底（只由外部锚点决定：
+  ≥2 独立锚点→sourced；第一方实绩→observed；否则封顶 inferred）。
+- inferred 项标 `advisory:true`；**行为域④即便有锚点也维持 advisory**（forced inferred 精神）。
+
+**脚本** `concept_advisory.py`：
+
+- `build_advisory(dna, reverse_map=None)` → `{advisory_suggestions[], count, note}`，
+  每条 `{axis,value,domain,provenance,advisory:true,overridable:true,gating:false,rationale}`。
+- `merge_into_brief(brief, advisory)` → 把建议挂到 brief 的**新建 `advisory_block`** 字段，
+  原 brief 的 logline/世界观/风格等**一律不动**。
+- CLI：`--dna`、可选 `--reverse-map`、`--brief`、`--json`。确定性、不触网、无 LLM。

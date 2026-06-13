@@ -96,8 +96,13 @@ def effective_per_shot_cap(project_budget: dict[str, Any],
 
 def check_batch(project: str | Path, *, shot_id: str | None = None,
                 batch_cost_cny: float = 0.0, genspec: dict[str, Any] | None = None,
-                qc_cost_cny: float = 0.0) -> dict[str, Any]:
-    """发批前核算。返回 {allowed, blocks[], alerts[], ...}。不写账，仅判定。"""
+                qc_cost_cny: float = 0.0,
+                deconstruct_cost_cny: float = 0.0) -> dict[str, Any]:
+    """发批前核算。返回 {allowed, blocks[], alerts[], ...}。不写账，仅判定。
+
+    第四道闸 deconstruct_cost_cap（M3，纯增量）：仅当 budget.deconstruct_cost_cap_cny
+    存在时生效；缺省字段或 deconstruct_cost_cny=0 时行为与改造前完全一致。
+    """
     proj = read_yaml(project_path(project, "project.yaml"))
     budget = proj.get("budget", {})
     summary = _ledger.get_summary(project)
@@ -134,6 +139,16 @@ def check_batch(project: str | Path, *, shot_id: str | None = None,
         blocks.append(
             f"AI QC 预计 {qc_projected:.2f} 超 ai_qc_cost_cap {float(qc_cap):.2f}")
 
+    # 4) deconstruct_cost_cap（第四道闸，M3 纯增量）：
+    #    仅当 budget.deconstruct_cost_cap_cny 存在时生效；否则不产生 block/不影响 allowed。
+    deconstruct_cap = budget.get("deconstruct_cost_cap_cny")
+    deconstruct_projected = float(summary.get("deconstruct_costs", 0.0)) \
+        + float(deconstruct_cost_cny)
+    if deconstruct_cap is not None and deconstruct_projected > float(deconstruct_cap):
+        blocks.append(
+            f"逆向解构预计 {deconstruct_projected:.2f} 超 "
+            f"deconstruct_cost_cap {float(deconstruct_cap):.2f}")
+
     return {
         "allowed": not blocks,
         "shot_id": shot_id,
@@ -142,6 +157,7 @@ def check_batch(project: str | Path, *, shot_id: str | None = None,
         "shot_projected": shot_projected,
         "total_projected": total_projected,
         "qc_projected": qc_projected,
+        "deconstruct_projected": deconstruct_projected,
         "blocks": blocks,
         "alerts": alerts,
     }
@@ -149,10 +165,12 @@ def check_batch(project: str | Path, *, shot_id: str | None = None,
 
 def guard_batch(project: str | Path, *, shot_id: str | None = None,
                 batch_cost_cny: float = 0.0, genspec: dict[str, Any] | None = None,
-                qc_cost_cny: float = 0.0, record: bool = True) -> dict[str, Any]:
+                qc_cost_cny: float = 0.0, deconstruct_cost_cny: float = 0.0,
+                record: bool = True) -> dict[str, Any]:
     """核算并（record=True 时）把护栏判定追写 events.jsonl。"""
     result = check_batch(project, shot_id=shot_id, batch_cost_cny=batch_cost_cny,
-                         genspec=genspec, qc_cost_cny=qc_cost_cny)
+                         genspec=genspec, qc_cost_cny=qc_cost_cny,
+                         deconstruct_cost_cny=deconstruct_cost_cny)
     if record and (result["blocks"] or result["alerts"]):
         note = "; ".join(result["blocks"] + result["alerts"])
         _ledger.append_event(project, {
@@ -177,6 +195,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--batch-cost", type=float, default=0.0, help="本批新增预计成本 CNY")
     parser.add_argument("--genspec", help="GenSpec 路径（取其 per_shot_cost_cap 参与 min）")
     parser.add_argument("--qc-cost", type=float, default=0.0, help="本批新增 AI QC 预计成本 CNY")
+    parser.add_argument("--deconstruct-cost", type=float, default=0.0,
+                        help="本批新增逆向解构预计成本 CNY（第四道闸，M3）")
     parser.add_argument("--no-record", action="store_true", help="只判定不写事件")
     parser.add_argument("--channel", help="按 channel-cost-map 估算该渠道成本（路由参考）")
     parser.add_argument("--seconds", type=float, default=0.0, help="估算用时长（秒）")
@@ -194,6 +214,7 @@ def main(argv: list[str] | None = None) -> int:
     genspec = _load_genspec(args.genspec)
     result = guard_batch(args.project, shot_id=args.shot, batch_cost_cny=args.batch_cost,
                         genspec=genspec, qc_cost_cny=args.qc_cost,
+                        deconstruct_cost_cny=args.deconstruct_cost,
                         record=not args.no_record)
 
     if args.json:

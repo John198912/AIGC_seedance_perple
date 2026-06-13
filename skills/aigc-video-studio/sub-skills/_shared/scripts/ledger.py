@@ -29,7 +29,7 @@ ensure_validate_importable()
 from validate import validate_obj  # noqa: E402
 
 EVENT_TYPES = {"take_cost", "ai_qc_cost", "human_minutes", "hidden_cost", "stage_advance",
-               "adjust", "g0_review"}
+               "adjust", "g0_review", "deconstruct_cost"}
 
 
 def _ledger_dir(project: str | Path) -> Path:
@@ -113,6 +113,7 @@ def rebuild_summary(project: str | Path) -> dict[str, Any]:
         "total_credits": 0.0,
         "by_shot": {},
         "ai_qc_costs": 0.0,
+        "deconstruct_costs": 0.0,
         "human_minutes": 0.0,
         "hidden_costs": {},
         "event_count": len(events),
@@ -134,6 +135,11 @@ def rebuild_summary(project: str | Path) -> dict[str, Any]:
                 slot["take_count"] += 1
         elif etype == "ai_qc_cost":
             summary["ai_qc_costs"] += cny
+            summary["total_cny"] += cny
+        elif etype == "deconstruct_cost":
+            # 逆向研究/解构成本：既单列 deconstruct_costs（供第四道闸判定）、
+            # 又计入 total_cny（真实花费）——参照 ai_qc_cost 处理。
+            summary["deconstruct_costs"] += cny
             summary["total_cny"] += cny
         elif etype == "human_minutes":
             summary["human_minutes"] += float(e.get("minutes") or 0)
