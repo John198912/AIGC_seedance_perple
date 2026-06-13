@@ -95,7 +95,55 @@ reviewer:human_required`（G0 永不自动放行）。**追写一条 `g0_review`
 **state-machine 集成点**（运行时，不在 M2 改）：在 reverse_map 产出 C14 后、SK1–SK4 消费前插 G0；
 建议挂在 advance_stage 进入消费阶段前的人工闸，本期仅文档化，**不改 advance_stage**。
 
-## 后续（不在 M2）
+## M4 · 数据闭环（C15+回测+贝叶斯+轴发现+版本化+日落/TTL）
 
-- M3：`deconstruct_cost_cap` 改造 budget_guard + verify_capabilities 扩展。
-- M4：C15 后台导出 + 分层控混淆 + 轴发现 + 版本化字典 + 贝叶斯判据 + 日落。
+> M4 全部确定性、不触网、无 LLM；真实联网/手工 CSV 导出属**运行时**，脚本用确定性 mock/CSV 取代（仿 vlm_screen/api_adapter）。
+> 加法式：不改 advance_stage 的 G3/G6/G9、不改 C1–C11、不改 M2/M3 已交付件现有行为。
+
+### 四条核心纪律（硬编码为规则，非注释）
+
+1. **幸存者偏差硬规则**：C15/池化基准只看得到「已发布/已爆」作品，数据被截断 → **只做桶内（同账号×同时段桶×同题材桶）相对比较，禁用任何绝对完播率/绝对互动率阈值**。`run_backtest` 收到 `abs_threshold is not None` 一律 `raise ValueError`。
+2. **C15 = 第一方实绩锚点**：`source` 恒 `first_party`；经 M2 `provenance.has_first_party_anchor` → `observed`（复用，勿改 provenance）。C15 **可选、永不门控**。
+3. **贝叶斯非频率派**：后验区间 + 最小效应量**双门槛** + **显式损失函数**，产出定性「贝叶斯置信档」。
+4. **日落 / 休眠**：结构层（content）轴**只 hibernate 不 retire**；①②④顾问轴证据长期不足可 retire。领先（leading）信号衰减快（短 TTL），滞后（lagging）信号衰减慢（长 TTL）。
+
+### C15 ChannelPerformance（`_shared/schemas/C15.schema.json` + `channel_perf.py`）
+
+- schema：`{project_id(req), channel(req), axis_level_metrics{completion_rate?,interaction_rate?,...}, bucket{account,time_bucket,topic_bucket}(req), source(const "first_party"), collected_at}`。
+- validate.py：`CONTRACT_ALIASES` 增 `"C15": "channelperf"`（仅此一行）。
+- `ingest_csv(path)`：逐行归一为 C15，`source` 强制 `first_party`；缺 bucket 维度记 `bucket_incomplete:true` 并**排除出回测**（诚实边界）。
+- `bucket_key(c15)`：同账号×同时段桶×同题材桶复合键。
+- `as_anchor(c15)`：产 `{"origin":"first_party","source_domain":"c15:<channel>"}`，供 `final_tier → observed`。
+
+### 分层控混淆回测（`backtest.py`）
+
+- `stratify`：按 `bucket_key` 分组，丢弃 `bucket_incomplete`。
+- `relative_compare`：**仅桶内** treatment（带某轴取值）vs control（不带）的相对差，绝不与绝对阈值比较。
+- `run_backtest(..., *, abs_threshold=None)`：`abs_threshold is not None` → raise；聚合各桶相对差 → 贝叶斯判据 → `{buckets_used, per_bucket[], pooled_effect, bayes, decision}`。
+
+### 贝叶斯判据（`bayes_criterion.py`）
+
+- `posterior(effects, *, prior=None)`：Normal 共轭后验近似（确定性）；无 prior → 无信息弱先验。产后验均值 + 90% 可信区间。
+- `decide(post, *, min_effect, loss_adopt, loss_retire)`：**双门槛**（区间下界 > min_effect 且后验均值 > min_effect → 采纳；上界 < 0 → 淘汰；否则维持）+ **显式损失函数** → `recommended_action`。
+- `confidence_band`：定性档 `strong_adopt|lean_adopt|insufficient|lean_retire|strong_retire`。
+
+### 轴发现（`axis_discovery.py`）
+
+- `collect_unknown(c13_batch, dictionary)`：扫 C13，聚合字典外轴的计数与样例取值。
+- `propose_axes(unknown, *, min_support=3)`：计数 ≥ min_support 产提案（`status:"candidate"`）。**只提案不自动写字典**（人工闸，批量进新 major）。
+
+### 版本化字典发布（`dict_versioning.py`，semver）
+
+- `classify_change`：**增删轴=major**；**仅权重/元数据调=minor**；无变=none。
+- `bump`：**轴集合在一个 major 内冻结**——minor 内伴随增删轴 → raise。
+- `diff_new_vs_existing`：只 diff 新轴 × 既有轴的稀疏冲突候选，不重导稠密矩阵。
+- `publish`：算 change_type → bump → 发布记录；**不直接写盘覆盖 lib**（人工确认）。
+
+### 日落 + TTL 衰减（`evidence_budget.py`）
+
+- `sunset_check`：累计 N 项目仍 insufficient → 降优先级；判退役时**结构层只 hibernate，①②④可 retire**，域未登记保守 hibernate。
+- `ttl_decay`：leading 短 TTL（30 天半衰，衰减快）、lagging 长 TTL（90 天半衰，衰减慢）；`decay_weight=0.5^(age/halflife)`，age ≥ 2×半衰记 stale。
+
+## 后续（不在 M4）
+
+- 运行时接线：4 路 subagent 联网、真实 CSV 导出、字典发布人工确认闸、回测持久化证据预算。

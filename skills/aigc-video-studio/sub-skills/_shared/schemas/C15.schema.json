@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "C15.schema.json",
+  "title": "C15 · ChannelPerformance（第一方渠道实绩锚点，数据闭环）",
+  "description": "第一方实绩采集（手工/半自动 CSV）。source 恒 first_party，经 M2 provenance.has_first_party_anchor → observed。可选、永不门控。幸存者偏差硬规则：只做桶内（同账号×同时段桶×同题材桶）相对比较，禁用任何绝对完播/互动阈值，不强求逐场 retention。设计稿 v5.0 §8/§9 M4。",
+  "type": "object",
+  "required": ["project_id", "channel", "bucket", "source"],
+  "additionalProperties": true,
+  "properties": {
+    "project_id": { "type": "string", "description": "对应 C1 project_id" },
+    "channel": { "type": "string", "description": "发布渠道（抖音/B站/YouTube 等）" },
+    "axis_level_metrics": {
+      "type": "object",
+      "description": "轴级指标（桶内相对用，非绝对阈值）。常见 completion_rate / interaction_rate，可扩展。",
+      "additionalProperties": true,
+      "properties": {
+        "completion_rate": { "type": "number" },
+        "interaction_rate": { "type": "number" }
+      }
+    },
+    "bucket": {
+      "type": "object",
+      "description": "分层控混淆桶：同账号×同时段桶×同题材桶（缺维度的行排除出回测）。",
+      "required": ["account", "time_bucket", "topic_bucket"],
+      "additionalProperties": true,
+      "properties": {
+        "account": { "type": "string" },
+        "time_bucket": { "type": "string" },
+        "topic_bucket": { "type": "string" }
+      }
+    },
+    "source": {
+      "const": "first_party",
+      "description": "恒为 first_party：第一方实绩锚点（M2 provenance → observed）。"
+    },
+    "collected_at": { "type": "string", "description": "采集时间（ISO 日期/时间）" },
+    "bucket_incomplete": {
+      "type": "boolean",
+      "description": "缺 bucket 维度时为 true，诚实边界：排除出回测。"
+    }
+  }
+}
